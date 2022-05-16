@@ -64,6 +64,7 @@ class ApiTestCase:
         self.template.init(step.collector.others)
         step.collector.others = self.template.render()
         self.template.set_help_data(step.collector.path, step.collector.others.get('headers'), query, body)
+        # 再渲染query参数
         if query is not None:
             for expr, value in get_json_relation(query, "query"):
                 if isinstance(value, str) and self.comp.search(value) is not None:
@@ -72,7 +73,8 @@ class ApiTestCase:
                     expression = self.json_path_parser.parse(expr)
                     expression.update(query, render_value)
                     self.template.request_query = query
-            step.collector.others.setdefault("query", self.template.request_query)
+            step.collector.others.setdefault("params", self.template.request_query)
+        # 最后渲染body数据
         if body is not None:
             if step.collector.body_type in ("json", "form-urlencoded", "form-data"):
                 for expr, value in get_json_relation(body, "body"):

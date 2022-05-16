@@ -107,6 +107,7 @@ class LMApi(Api):
                 "engineCode": self.engine,
                 "timestamp": int(time.time())
             }
+            # print('获取任务')
             try:
                 if index > 0:
                     DebugLogger("-------重试调用获取引擎任务接口--------")
@@ -114,6 +115,7 @@ class LMApi(Api):
                 if res.status_code == 200:
                     status = res.json()["status"]
                     if status == 0:
+                        # print(res.text)
                         return res.json()["data"]
                     elif status in (2020, 2030, 2040):
                         DebugLogger("token校验错误 重新申请token")
@@ -121,7 +123,11 @@ class LMApi(Api):
                         continue
                     else:
                         DebugLogger("获取引擎任务请求失败")
+                    DebugLogger("获取引擎任务参数:{}".format(res.text))
+                    print("获取引擎任务参数:{}", res.text)
                 else:
+                    DebugLogger("获取引擎任务失败:{}".format(res.text))
+                    print("获取引擎任务失败:{}", res.text)
                     DebugLogger("调用获取引擎任务接口 响应状态为：%s" % res.status_code)
             except Exception as e:
                 ErrorLogger("调用获取引擎任务接口 发生错误 错误信息为：%s" % e)
