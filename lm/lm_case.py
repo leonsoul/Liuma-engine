@@ -12,6 +12,7 @@ from lm.lm_config import IMAGE_PATH, LMConfig
 class LMCase(unittest.TestCase):
 
     def __init__(self, case_name, test_data, case_type="API"):
+        self._outcome = None
         self.test_data = test_data
         self.trans_list = []
         self.case_name = case_name
