@@ -14,6 +14,7 @@ import ctypes
 
 
 def _async_raise(tid, exctype):
+    """关闭线程方法"""
     tid = ctypes.c_long(tid)
     if not inspect.isclass(exctype):
         exctype = type(exctype)
@@ -42,10 +43,9 @@ class LMStart(object):
 
     def main(self):
         """"启动入口"""
-        exec_status = Value("i", 1)
+        exec_status = Value("i", 1)   # 执行状态 0 执行中、 1 待执行 默认待执行
         while True:
-            retry = 0
-            # 生成测试心跳的线程
+            retry = 0   # 关闭线程重试次数
             status_thread = threading.Thread(target=self.send_heartbeat)
             status_thread.start()
             # 生成任务队列
@@ -54,8 +54,7 @@ class LMStart(object):
             # 启动线程获取引擎任务
             task_thread = threading.Thread(target=self.get_task, args=(task_queue, task_status_queue, exec_status))
             task_thread.start()
-            while retry < 3:
-                # 如果心跳暂停之后，重试+1，直到重试3次之后结束
+            while retry < 3:    # 线程重试超过3次则默认线程需要重启
                 if not status_thread.is_alive():
                     result = stop_thread(task_thread)
                     if result:
@@ -79,8 +78,7 @@ class LMStart(object):
                     DebugLogger("接受任务成功 启动执行进程")
                     # 生成结果队列
                     case_result_queue = Queue()
-                    current_exec_status = Value("i", 0)
-                    # 启动运行线程
+                    current_exec_status = Value("i", 0)   # 0 执行中、 1 执行结束
                     run_process = Process(target=self.run_test, args=(task, case_result_queue, current_exec_status))
                     run_process.start()
                     # 启动结果线程
@@ -116,6 +114,7 @@ class LMStart(object):
                                 elif not run_process.is_alive() and case_result_queue.empty():
                                     start_time = datetime.datetime.now()
                                     while (datetime.datetime.now() - start_time).seconds < 30:
+                                        # 循环等待30s 防止最后一条结果数据没有发送出去 如果报告进程自销则中止等待
                                         if not report_process.is_alive():
                                             break
                                         time.sleep(3)

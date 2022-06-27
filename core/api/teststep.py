@@ -23,10 +23,11 @@ REQUEST_CNAME_MAP = {
 
 class ApiTestStep:
 
-    def __init__(self, test, session, collector, context):
+    def __init__(self, test, session, collector, context, params):
         self.session = session
         self.collector = collector
         self.context = context
+        self.params = params
         self.test = test
         self.status_code = None
         self.response_headers = None
@@ -39,14 +40,8 @@ class ApiTestStep:
         try:
             self.test.debugLog('[{}][{}]接口执行开始'.format(self.collector.apiId, self.collector.apiName))
             request_log = '【请求信息】:<br>'
-            request_log += '【请求URL】{} {}<br>'.format(self.collector.method,
-                                                     url_join(self.collector.url, self.collector.path))
-            # self.collector.others.update({'params': self.collector.others['query']})
-            # del self.collector.others['query']
-
+            request_log += '{} {}<br>'.format(self.collector.method, url_join(self.collector.url, self.collector.path))
             request_log += '<br>【其他的一些参数】：<br>'
-
-            # print(self.collector.url, self.collector.path, self.collector.protocol)
             for key, value in self.collector.others.items():
                 if value is not None:
                     c_key = REQUEST_CNAME_MAP[key] if key in REQUEST_CNAME_MAP else key
@@ -67,12 +62,12 @@ class ApiTestStep:
                 sleep(int(self.collector.controller["sleepBeforeRun"]))
                 self.test.debugLog("请求前等待%sS" % int(self.collector.controller["sleepBeforeRun"]))
             start_time = datetime.datetime.now()
-            if bool(self.collector.controller["useSession"]) and bool(self.collector.controller["saveSession"]):
+            if self.collector.controller["useSession"].lower() == 'true' and self.collector.controller["saveSession"].lower() == "true":
                 res = self.session.request(self.collector.method, url, **self.collector.others)
-            elif bool(self.collector.controller["useSession"]):
+            elif self.collector.controller["useSession"].lower() == "true":
                 session = deepcopy(self.session)
                 res = session.request(self.collector.method, url, **self.collector.others)
-            elif bool(self.collector.controller["saveSession"]):
+            elif self.collector.controller["saveSession"].lower() == "true":
                 session = Session()
                 res = session.request(self.collector.method, url, **self.collector.others)
             else:
@@ -84,23 +79,69 @@ class ApiTestStep:
             response_log += '响应码: {}<br>'.format(self.status_code)
             response_log += '响应头: {}<br>'.format(dict2str(self.response_headers))
             if 'content-disposition' not in [key.lower() for key in self.response_headers.keys()]:
-                a = log_msg(res.text, default=1)
-                print(a)
-                response_text = '响应体: {}'.format(a.replace("\n", "<br>"))
+                response_text = '<b>响应体: {}</b>'.format(log_msg(self.response_content))
             else:
-                response_text = '响应体: 文件内容暂不展示, 长度{}'.format(len(res.text))
+                response_text = '<b>响应体: 文件内容暂不展示, 长度{}</b>'.format(len(self.response_content_bytes))
+            # 响应体长度不能超过50000
             response_log += response_text
             self.test.debugLog(response_log)
+            # 断言
             self.check()
-            if self.assert_result['result']:
-                self.extract_depend_params()
+            # 关联参数
+            self.extract_depend_params()
         finally:
             self.test.debugLog('[{}][{}]接口执行结束'.format(self.collector.apiId, self.collector.apiName))
             if int(self.collector.controller["sleepAfterRun"]) > 0:
                 sleep(int(self.collector.controller["sleepAfterRun"]))
                 self.test.debugLog("请求后等待%sS" % int(self.collector.controller["sleepAfterRun"]))
 
+    def judge_condition(self):
+        conditions = json.loads(self.collector.controller["whetherExec"])
+        for condition in conditions:
+            try:
+                result, msg = LMAssert(condition['assertion'], condition['target'], condition['expect']).compare()
+                if not result:
+                    return msg
+            except Exception as e:
+                return str(e)
+        else:
+            return True
+
+    def loop_exec(self):
+        loop = json.loads(self.collector.controller["loopExec"])
+        print(loop)
+        _loop_index_name = loop["indexName"]
+        try:
+            _loop_times = int(loop["times"])
+        except:
+            _loop_times = 1
+        try:
+            _loop_num = int(loop["num"])
+        except:
+            _loop_num = 1
+        return _loop_index_name, _loop_times, _loop_num
+
+
+    def exec_script(self, code):
+        """执行前后置脚本"""
+        def sys_put(name, val):
+            self.context[name] = val
+
+        def sys_get(name):
+            if name in self.params:   # 优先从公参中取值
+                return self.params[name]
+            return self.context[name]
+
+        names = locals()
+        names["res_code"] = self.status_code
+        names["res_header"] = self.response_headers
+        names["res_data"] = self.response_content
+        names["res_cookies"] = self.response_cookies
+        names["res_bytes"] = self.response_content_bytes
+        exec(code)
+
     def save_response(self, res):
+        """保存响应结果"""
         self.status_code = res.status_code
         self.response_headers = dict(res.headers)
         self.response_content_bytes = res.content
@@ -114,6 +155,7 @@ class ApiTestStep:
             self.response_content = res.text
 
     def extract_depend_params(self):
+        """关联参数"""
         if self.collector.relations is not None:
             for items in self.collector.relations:
                 if items['expression'].strip() == '$':
@@ -141,6 +183,7 @@ class ApiTestStep:
                 self.context[key] = value
 
     def check(self):
+        """断言"""
         check_messages = list()
         if self.collector.assertions is not None:
             results = list()
