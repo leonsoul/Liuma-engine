@@ -91,6 +91,21 @@ class ApiRequestCollector:
             api_data["controller"]["postScript"] = None  # 默认没有后置脚本
         if "errorContinue" not in api_data["controller"]:
             api_data["controller"]["errorContinue"] = "false"  # 默认错误后不再执行
+            api_data["controller"]["saveSession"] = "false"  # 默认不保存session
+        if "requireVerify" not in api_data["controller"]:
+            api_data["controller"]["requireVerify"] = None  # 默认不需要验证
+        if "requireStream" not in api_data["controller"]:
+            api_data["controller"]["requireStream"] = None  # 默认不是文件下载接口
+        if "preScript" not in api_data["controller"]:
+            api_data["controller"]["preScript"] = None  # 默认没有前置脚本
+        if "postScript" not in api_data["controller"]:
+            api_data["controller"]["postScript"] = None  # 默认没有后置脚本
+        if "errorContinue" not in api_data["controller"]:
+            api_data["controller"]["errorContinue"] = "false"  # 默认错误后不再执行
+        if "whetherExec" not in api_data["controller"]:
+            api_data["controller"]["whetherExec"] = None  # 默认不需要条件控制器
+        if "loopExec" not in api_data["controller"]:
+            api_data["controller"]["loopExec"] = None  # 默认不需要循环控制器
         self.controller = api_data["controller"]
 
     def collect_conditions(self, api_data):
