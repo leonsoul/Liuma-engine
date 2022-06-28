@@ -7,6 +7,7 @@ import json
 import jsonpath
 
 from core.assertion import LMAssert
+from tools.alltuu.Signature import Signature
 from tools.utils.utils import extract, ExtractValueError, url_join
 from urllib.parse import urlencode
 
@@ -37,6 +38,7 @@ class ApiTestStep:
         self.assert_result = None
 
     def execute(self):
+        """测试执行"""
         try:
             self.test.debugLog('[{}][{}]接口执行开始'.format(self.collector.apiId, self.collector.apiName))
             request_log = '【请求信息】:<br>'
@@ -62,7 +64,8 @@ class ApiTestStep:
                 sleep(int(self.collector.controller["sleepBeforeRun"]))
                 self.test.debugLog("请求前等待%sS" % int(self.collector.controller["sleepBeforeRun"]))
             start_time = datetime.datetime.now()
-            if self.collector.controller["useSession"].lower() == 'true' and self.collector.controller["saveSession"].lower() == "true":
+            if self.collector.controller["useSession"].lower() == 'true' and self.collector.controller[
+                "saveSession"].lower() == "true":
                 res = self.session.request(self.collector.method, url, **self.collector.others)
             elif self.collector.controller["useSession"].lower() == "true":
                 session = deepcopy(self.session)
@@ -70,6 +73,13 @@ class ApiTestStep:
             elif self.collector.controller["saveSession"].lower() == "true":
                 session = Session()
                 res = session.request(self.collector.method, url, **self.collector.others)
+            # 接口前置处理加密 --alltuu
+            elif self.collector.controller['encryption'].lower() == "true":
+                session = Session()
+                signature_string, signature = Signature().sign_url_v4(**self.collector.others['token'],
+                                                                      **self.collector.others)
+                SplicingUrl = url + '/' + signature_string
+                res = session.request(self.collector.method, SplicingUrl, **self.collector.others)
             else:
                 res = request(self.collector.method, url, **self.collector.others)
             end_time = datetime.datetime.now()
@@ -121,14 +131,14 @@ class ApiTestStep:
             _loop_num = 1
         return _loop_index_name, _loop_times, _loop_num
 
-
     def exec_script(self, code):
         """执行前后置脚本"""
+
         def sys_put(name, val):
             self.context[name] = val
 
         def sys_get(name):
-            if name in self.params:   # 优先从公参中取值
+            if name in self.params:  # 优先从公参中取值
                 return self.params[name]
             return self.context[name]
 

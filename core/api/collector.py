@@ -97,6 +97,8 @@ class ApiRequestCollector:
             api_data["controller"]["whetherExec"] = None  # 默认不需要条件控制器
         if "loopExec" not in api_data["controller"]:
             api_data["controller"]["loopExec"] = None  # 默认不需要循环控制器
+        if "encryption" not in api_data["controller"]:
+            api_data["controller"]["encryption"] = None  # 默认不需要加密
         self.controller = api_data["controller"]
 
     def collect_query(self, api_data):

@@ -24,7 +24,7 @@ class ApiTestCase:
         self.params = handle_params_data(self.case_message['params'])
         self.template = Template(self.context, self.functions, self.params)
         self.json_path_parser = JsonPathParser()
-        self.comp = re.compile(r"\{\{.*?\}\}")
+        self.comp = re.compile(r"\{\{.*?}\}")
 
     def execute(self):
         """用例执行入口函数"""

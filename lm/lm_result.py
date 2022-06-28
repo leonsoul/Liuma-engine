@@ -24,8 +24,8 @@ class LMResult(unittest.TestResult):
             status, test_case, error = self.result[-1]
             case_info = {
                 "status": status,
-                "startTime": test_case.start_time.timestamp()*1000,
-                "endTime": test_case.stop_time.timestamp()*1000,
+                "startTime": test_case.start_time.timestamp() * 1000,
+                "endTime": test_case.stop_time.timestamp() * 1000,
                 "collectionId": test_case.__class__.__doc__.split("_")[-1],
                 "caseId": getattr(test, "case_name", " _ ").split("_")[1],
                 "caseType": getattr(test, "case_type", "API"),
@@ -63,10 +63,10 @@ class LMResult(unittest.TestResult):
     def printResult(self, n, test):
         name = test.case_name
         if self.verbosity > 1:
-            if n == 0:  sys.stderr.write('Pass  ' + name + ' '  + '\n')
-            if n == 1:  sys.stderr.write('Fail  ' + name + ' '  + '\n')
+            if n == 0:  sys.stderr.write('Pass  ' + name + ' ' + '\n')
+            if n == 1:  sys.stderr.write('Fail  ' + name + ' ' + '\n')
             if n == 2:  sys.stderr.write('Error  ' + name + ' ' + '\n')
-            if n == 3:  sys.stderr.write('Skip  ' + name + ' '  + '\n')
+            if n == 3:  sys.stderr.write('Skip  ' + name + ' ' + '\n')
         else:
             if n == 0:  sys.stderr.write('Pass')
             if n == 1:  sys.stderr.write('Fail')
