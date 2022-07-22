@@ -56,4 +56,3 @@ class LMConfig(object):
             self.browser_path = reader.data("WebDriver", "path")
         else:
             self.browser_path = os.path.join(BROWSER_PATH, reader.data("WebDriver", "path"))
-
