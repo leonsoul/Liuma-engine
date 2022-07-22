@@ -54,7 +54,7 @@ class LMSetting(object):
                 test_case_list = collection_map["testCaseList"]
                 driver = {
                     "browser_opt": self.config.browser_opt,
-                    "browser_path": self.config.browser_path,
+                    # "browser_path": self.config.browser_path,
                     "driver": None
                 }
                 session = Session()
@@ -78,7 +78,7 @@ class LMSetting(object):
             collection = collection_map["collectionId"]
             driver = {
                 "browser_opt": self.config.browser_opt,
-                "browser_path": self.config.browser_path,
+                # "browser_path": self.config.browser_path,
                 "driver": None
             }
             session = Session()
