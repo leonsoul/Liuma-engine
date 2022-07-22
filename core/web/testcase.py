@@ -37,10 +37,13 @@ class WebTestCase:
             if old_driver is not None:
                 old_driver.quit()
             test.driver["driver"] = None
+            browser_path = "/Users/bene/Desktop/Bene/Liuma-engine/browser/chromedriver"
             if test.driver["browser_opt"] == "remote":
-                self.driver = webdriver.Remote(command_executor=test.driver["browser_path"], desired_capabilities=caps)
+                # self.driver = webdriver.Remote(command_executor=test.driver["browser_path"], desired_capabilities=caps)
+                self.driver = webdriver.Remote(command_executor=browser_path, desired_capabilities=caps)
             else:
-                self.driver = webdriver.Chrome(executable_path=test.driver["browser_path"], options=opt)
+                # self.driver = webdriver.Chrome(executable_path=test.driver["browser_path"], options=opt)
+                self.driver = webdriver.Chrome(executable_path=browser_path, options=opt)
         else:
             if old_driver is not None:
                 self.driver = old_driver
