@@ -290,6 +290,7 @@ class LMApi(Api):
                 if res.status_code == 200:
                     status = res.json()["status"]
                     if status == 0:
+                        # print(res.text)
                         return res.json()["data"]
                     elif status in (2020, 2030, 2040):
                         DebugLogger("token校验错误 重新申请token")
