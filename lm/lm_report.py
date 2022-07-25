@@ -33,17 +33,14 @@ class LMReport(object):
                         data_type = message.split("--")[-1]
                     elif "run_all_stop" in message:
                         if len(not_send_result) != 0:
-                            DebugLogger('输出日志：' + str(not_send_result), file_path=log_path)
                             self.api.upload_result(task_id, data_type, not_send_result)
-
                         self.post_stop(task_id)  # 执行结束
                         self.status.value = 1
                         time.sleep(2)
                         DebugLogger("-------------------------------------------------")
                         break
-                    else:  # start_run_index--n
+                    else:   # start_run_index--n
                         if len(not_send_result) != 0:
-                            DebugLogger('输出日志：' + str(not_send_result), file_path=log_path)
                             self.api.upload_result(task_id, data_type, not_send_result)
                             not_send_result.clear()
                         index = int(message.split("--")[-1])
@@ -58,7 +55,6 @@ class LMReport(object):
                     if during < 3:
                         pass
                     else:
-                        DebugLogger('输出日志：' + str(not_send_result), file_path=log_path)
                         self.api.upload_result(task_id, data_type, not_send_result)
                         last_send_time = current_time
                         not_send_result.clear()
