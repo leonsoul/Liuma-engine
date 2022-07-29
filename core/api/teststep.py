@@ -76,10 +76,9 @@ class ApiTestStep:
             # 接口前置处理加密 --alltuu
             elif self.collector.controller['encryption'].lower() == "true":
                 session = Session()
-                signature_string, signature = Signature().sign_url_v4(**self.collector.others['token'],
-                                                                      **self.collector.others)
+                signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'], self.collector.others['data'])
                 SplicingUrl = url + '/' + signature_string
-                res = session.request(self.collector.method, SplicingUrl, **self.collector.others)
+                res = session.request(self.collector.method, SplicingUrl, **self.collector.others['params'])
             else:
                 res = request(self.collector.method, url, **self.collector.others)
             end_time = datetime.datetime.now()

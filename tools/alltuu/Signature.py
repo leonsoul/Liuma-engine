@@ -1,3 +1,5 @@
+import json
+
 import binascii
 import time
 import uuid
@@ -65,7 +67,8 @@ class Signature:
         if args_map is None:
             validate_map = dict(std_args_map)
         else:
-            validate_map = dict(args_map, **std_args_map)
+
+            validate_map = dict(args_maps, **std_args_map)
         # 把所有参数按照参数名称进行字典序升序排序
         items = sorted(validate_map.items())
         validate_string_array = [value for key, value in items]
@@ -140,3 +143,11 @@ class Signature:
             msg = ("expected 1-D data, not %d-D data from %s" %
                    (m.ndim, s.__class__.__name__))
             raise TypeError(msg)
+
+
+if __name__ == '__main__':
+    strl = 'name=15191333333&pwd=25d55ad283aa400af464c76d713c07ad'
+    arg = {}
+
+    for i in strl.split('&'):
+        print(i)
