@@ -59,7 +59,8 @@ class ApiTestStep:
                 sleep(int(self.collector.controller["sleepBeforeRun"]))
                 self.test.debugLog("请求前等待%sS" % int(self.collector.controller["sleepBeforeRun"]))
             start_time = datetime.datetime.now()
-            if self.collector.controller["useSession"].lower() == 'true' and self.collector.controller["saveSession"].lower() == "true":
+            if self.collector.controller["useSession"].lower() == 'true' and self.collector.controller[
+                "saveSession"].lower() == "true":
                 res = self.session.request(self.collector.method, url, **self.collector.others)
             elif self.collector.controller["useSession"].lower() == "true":
                 session = deepcopy(self.session)
@@ -70,7 +71,7 @@ class ApiTestStep:
             else:
                 res = request(self.collector.method, url, **self.collector.others)
             end_time = datetime.datetime.now()
-            self.test.recordTransDuring(int((end_time-start_time).microseconds/1000))
+            self.test.recordTransDuring(int((end_time - start_time).microseconds / 1000))
             self.save_response(res)
             response_log = '【响应信息】:<br>'
             response_log += '响应码: {}<br>'.format(self.status_code)
@@ -118,14 +119,14 @@ class ApiTestStep:
             _loop_num = 1
         return _loop_index_name, _loop_times, _loop_num
 
-
     def exec_script(self, code):
         """执行前后置脚本"""
+
         def sys_put(name, val):
             self.context[name] = val
 
         def sys_get(name):
-            if name in self.params:   # 优先从公参中取值
+            if name in self.params:  # 优先从公参中取值
                 return self.params[name]
             return self.context[name]
 
@@ -225,14 +226,7 @@ class ApiTestStep:
 
 def dict2str(data):
     if isinstance(data, dict):
-        tmp_data = deepcopy(data)
-        if len(tmp_data) > 0:
-            parser = JsonPathParser()
-            for i, j in zip(jsonpath.jsonpath(tmp_data, '$..'), jsonpath.jsonpath(tmp_data, '$..', result_type="PATH")):
-                expr = parser.parse(j)
-                if isinstance(i, bytes):
-                    expr.update(tmp_data, '字节数据暂不展示, 长度为{}'.format(len(i)))
-        return json.dumps(tmp_data, ensure_ascii=False)
+        return json.dumps(data, ensure_ascii=False)
     elif not isinstance(data, str):
         return str(data)
     else:

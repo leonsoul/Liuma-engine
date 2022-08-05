@@ -89,12 +89,12 @@ class ApiTestCase:
                 if step.assert_result['result']:
                     self.test.debugLog('[{}][{}]接口断言成功: {}'.format(step.collector.apiId,
                                                                    step.collector.apiName,
-                                                                   log_msg(step.assert_result['checkMessages'])))
+                                                                   dict2str(step.assert_result['checkMessages'])))
                 else:
                     self.test.errorLog('[{}][{}]接口断言失败: {}'.format(step.collector.apiId,
                                                                    step.collector.apiName,
-                                                                   log_msg(step.assert_result['checkMessages'])))
-                    raise AssertionError(log_msg(step.assert_result['checkMessages']))
+                                                                   dict2str(step.assert_result['checkMessages'])))
+                    raise AssertionError(dict2str(step.assert_result['checkMessages']))
             except Exception as e:
                 error_info = sys.exc_info()
                 if step.collector.controller["errorContinue"].lower() == "true":
@@ -171,7 +171,6 @@ class ApiTestCase:
         self.template.init(conditions)
         return self.template.render()
 
-    def _render_content(self, step):
     def _render_controller(self, step):
         self.template.init(step.collector.controller)
         step.collector.controller = self.template.render()
