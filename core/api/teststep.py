@@ -39,18 +39,16 @@ class ApiTestStep:
             self.test.debugLog('[{}][{}]接口执行开始'.format(self.collector.apiId, self.collector.apiName))
             request_log = '【请求信息】:<br>'
             request_log += '{} {}<br>'.format(self.collector.method, url_join(self.collector.url, self.collector.path))
-            request_log += '{} {}<br>'.format(self.collector.method, url_join(self.collector.url, self.collector.path))
-            request_log += '<br>【其他的一些参数】：<br>'
             for key, value in self.collector.others.items():
                 if value is not None:
                     c_key = REQUEST_CNAME_MAP[key] if key in REQUEST_CNAME_MAP else key
                     if key == 'files':
                         if isinstance(value, dict):
-                            request_log += '{}: {}<br>'.format(c_key, ["文件长度%s: %s" % (k, len(v)) for k,v in value.items()])
+                            request_log += '{}: {}<br>'.format(c_key, [i[0] for i in value.values()])
                         if isinstance(value, list):
                             request_log += '{}: {}<br>'.format(c_key, [i[1][0] for i in value])
                     else:
-                        request_log += '{}: {}<br>'.format(c_key, dict2str(value))
+                        request_log += '{}: {}<br>'.format(c_key, log_msg(value))
             self.test.debugLog(request_log[:-4])
             if self.collector.body_type == "form-urlencoded":
                 self.collector.others['data'] = urlencode(self.collector.others['data'])
@@ -72,15 +70,16 @@ class ApiTestStep:
             else:
                 res = request(self.collector.method, url, **self.collector.others)
             end_time = datetime.datetime.now()
-            self.test.recordTransDuring(int((end_time - start_time).microseconds / 1000))
+            self.test.recordTransDuring(int((end_time-start_time).microseconds/1000))
             self.save_response(res)
             response_log = '【响应信息】:<br>'
             response_log += '响应码: {}<br>'.format(self.status_code)
             response_log += '响应头: {}<br>'.format(dict2str(self.response_headers))
             if 'content-disposition' not in [key.lower() for key in self.response_headers.keys()]:
-                response_text = '<b>响应体: {}</b>'.format(dict2str(self.response_content))
+                response_text = '<b>响应体: {}</b>'.format(log_msg(self.response_content))
             else:
                 response_text = '<b>响应体: 文件内容暂不展示, 长度{}</b>'.format(len(self.response_content_bytes))
+            # 响应体长度不能超过50000
             response_log += response_text
             self.test.debugLog(response_log)
             # 断言
@@ -92,59 +91,6 @@ class ApiTestStep:
             if int(self.collector.controller["sleepAfterRun"]) > 0:
                 sleep(int(self.collector.controller["sleepAfterRun"]))
                 self.test.debugLog("请求后等待%sS" % int(self.collector.controller["sleepAfterRun"]))
-
-    def looper_controller(self, case, api_list, index):
-        """循环控制器"""
-        if "type" in self.collector.looper and self.collector.looper["type"] == "WHILE":
-            # while循环 且兼容之前只有for循环
-            loop_start_time = datetime.datetime.now()
-            while self.collector.looper["timeout"] == 0 or (datetime.datetime.now() - loop_start_time).seconds * 1000 \
-                    < self.collector.looper["timeout"]:     # timeout为0时可能会死循环 慎重选择
-                # 渲染循环控制控制器 每次循环都需要渲染
-                _looper = case._render_looper(self.collector.looper)
-                result, _ = LMAssert(_looper['assertion'], _looper['target'], _looper['expect']).compare()
-                if not result:
-                    break
-                _api_list = api_list[index - 1: (index + _looper["num"] - 1)]
-                case._loop_execute(_api_list, api_list[index]["apiId"])
-        else:
-            # 渲染循环控制控制器 for只需渲染一次
-            _looper = case._render_looper(self.collector.looper)
-            for i in range(_looper["times"]):  # 本次循环次数
-                self.context[_looper["indexName"]] = i + 1  # 给循环索引赋值第几次循环 母循环和子循环的索引名不应一样
-                _api_list = api_list[index - 1: (index + _looper["num"] - 1)]
-                case._loop_execute(_api_list, api_list[index]["apiId"])
-
-    def condition_controller(self, case):
-        """条件控制器"""
-        _conditions = case._render_conditions(self.collector.conditions)
-        for condition in _conditions:
-            try:
-                result, msg = LMAssert(condition['assertion'], condition['target'], condition['expect']).compare()
-                if not result:
-                    return msg
-            except Exception as e:
-                return str(e)
-        else:
-            return True
-
-    def exec_script(self, code):
-        """执行前后置脚本"""
-        def sys_put(name, val):
-            self.context[name] = val
-
-        def sys_get(name):
-            if name in self.params:   # 优先从公参中取值
-                return self.params[name]
-            return self.context[name]
-
-        names = locals()
-        names["res_code"] = self.status_code
-        names["res_header"] = self.response_headers
-        names["res_data"] = self.response_content
-        names["res_cookies"] = self.response_cookies
-        names["res_bytes"] = self.response_content_bytes
-        exec(code)
 
     def judge_condition(self):
         conditions = json.loads(self.collector.controller["whetherExec"])
@@ -279,19 +225,21 @@ class ApiTestStep:
 
 def dict2str(data):
     if isinstance(data, dict):
-        return json.dumps(data, ensure_ascii=False)
+        tmp_data = deepcopy(data)
+        if len(tmp_data) > 0:
+            parser = JsonPathParser()
+            for i, j in zip(jsonpath.jsonpath(tmp_data, '$..'), jsonpath.jsonpath(tmp_data, '$..', result_type="PATH")):
+                expr = parser.parse(j)
+                if isinstance(i, bytes):
+                    expr.update(tmp_data, '字节数据暂不展示, 长度为{}'.format(len(i)))
+        return json.dumps(tmp_data, ensure_ascii=False)
     elif not isinstance(data, str):
         return str(data)
     else:
         return data
 
 
-def log_msg(value, default=0):
-    try:
-        if default == 1:
-            value = json.loads(value)
-    except:
-        pass
+def log_msg(value):
     temp_value = dict2str(value)
     temp_value_len = len(temp_value)
     if temp_value_len <= 15000:
@@ -306,9 +254,3 @@ class RemoveParamError(Exception):
 
 class AssertRelationError(Exception):
     """断言关系错误"""
-
-
-if __name__ == '__main__':
-    a = '{ "code": 0, "message": "0", "ttl": 1, "data": { "items": [ { "doc_id": 194355039, "poster_uid": 512313464, "title": "", "description": "大家好，本周是GAMES重磅推出《可视化研究生成长经验分享》系列论坛第四期。\n\n本期的两位老师将为我们分享关于 “科学可视化” 以及 “多维数据可视化”的科研经验和心得体会。\n\n欢迎关注今晚八点的直播[吃瓜][吃瓜]", "pictures": [ { "img_src": "https://i0.hdslb.com/bfs/album/d67fd7f376c2de59de6f5f9fb89314862888a23b.jpg", "img_width": 1684, "img_height": 1052, "img_size": 86.349609375, "img_tags": null } ], "count": 1, "ctime": 1652355320, "view": 14108, "like": 38, "dyn_id": "659350150782648329" }, { "doc_id": 194088730, "poster_uid": 512313464, "title": "", "description": "又到周一了，今晚八点有 GAMES104 第八课哦~\r\n同学们不要忘记了[打call]", "pictures": [ { "img_src": "https://i0.hdslb.com/bfs/album/7c3f19de039ec8501396f60cf63d9ff8f1a9da1b.jpg", "img_width": 1001, "img_height": 626, "img_size": 279.3330078125, "img_tags": null } ], "count": 1, "ctime": 1652088852, "view": 15655, "like": 136, "dyn_id": "658205679460286470" }, { "doc_id": 193755162, "poster_uid": 512313464, "title": "", "description": "大家好，本周是GAMES重磅推出的《可视化研究生成长经验分享》系列论坛第三期。\n\n本期的两位学姐将给我们分享 “跨专业读博的苦与乐” 以及 “userStudy的书写经验”\n\n今晚八点，锁定直播间[打call][打call]", "pictures": [ { "img_src": "https://i0.hdslb.com/bfs/album/d67fd7f376c2de59de6f5f9fb89314862888a23b.jpg", "img_width": 1684, "img_height": 1052, "img_size": 86.349609375, "img_tags": null } ], "count": 1, "ctime": 1651742379, "view": 14116, "like": 58, "dyn_id": "656717589255290884" }, { "doc_id": 192875211, "poster_uid": 512313464, "title": "", "description": "又到周一了，今晚八点有 GAMES104 第七课哦~\r\n同学们不要忘记了[打call]", "pictures": [ { "img_src": "https://i0.hdslb.com/bfs/album/7c3f19de039ec8501396f60cf63d9ff8f1a9da1b.jpg", "img_width": 1001, "img_height": 626, "img_size": 279.3330078125, "img_tags": null } ], "count": 1, "ctime": 1650881289, "view": 16656, "like": 147, "dyn_id": "653019235864281108" }, { "doc_id": 192262800, "poster_uid": 512313464, "title": "", "description": "又到周一了，今晚八点有 GAMES104 第六课哦~\n同学们不要忘记了[打call]", "pictures": [ { "img_src": "https://i0.hdslb.com/bfs/album/bffa5814ec3a627be67b5893e27b9a78bba9588b.jpg", "img_width": 1001, "img_height": 626, "img_size": 659.41015625, "img_tags": null } ], "count": 1, "ctime": 1650279853, "view": 16413, "like": 181, "dyn_id": "650436088129650690" }, { "doc_id": 191033018, "poster_uid": 512313464, "title": "", "description": "今晚8点就是 GAMES104 第四课啦，假期不间断，小伙伴们别错过了~", "pictures": [ { "img_src": "https://i0.hdslb.com/bfs/album/bffa5814ec3a627be67b5893e27b9a78bba9588b.jpg", "img_width": 1001, "img_height": 626, "img_size": 659.41015625, "img_tags": null } ], "count": 1, "ctime": 1649063418, "view": 18960, "like": 173, "dyn_id": "645211539432800312" }, { "doc_id": 190191274, "poster_uid": 512313464, "title": "", "description": "感谢@爱学习的校园君 的支持！小伙伴们，今晚8点GAMES104第三节课准时开始~https://www.bilibili.com/blackboard/activity-Pxtwy1uq3I.html?spm_id_from=444.42.0.0 ", "pictures": [ { "img_src": "https://i0.hdslb.com/bfs/album/bffa5814ec3a627be67b5893e27b9a78bba9588b.jpg", "img_width": 1001, "img_height": 626, "img_size": 659.41015625, "img_tags": null } ], "count": 1, "ctime": 1648464249, "view": 17295, "like": 125, "dyn_id": "642638128159391783" }, { "doc_id": 183186012, "poster_uid": 512313464, "title": "", "description": "大家好，GAMES在春节过后将会邀请不鸣科技CEO，《战意》制作人王希进行GAMES 104《现代游戏引擎：从入门到实践》的授课。 \n\n想知道带给我们无数欢乐的游戏是怎样创造出来的吗？王希学长手把手，带你从0-1搭建一个属于自己的游戏引擎！本课程涵盖所有游戏引擎知识，欢迎大家关注3月开课的GAMES 104！ [脱单doge][脱单doge]", "pictures": [ { "img_src": "https://i0.hdslb.com/bfs/album/257045b94159dbf94c5f0d490900e3d28a613605.jpg", "img_width": 1080, "img_height": 834, "img_size": 81.76171875, "img_tags": null } ], "count": 1, "ctime": 1642174496, "view": 26758, "like": 411, "dyn_id": "615623844662760591" }, { "doc_id": 57470470, "poster_uid": 512313464, "title": "", "description": "我已成为哔哩哔哩第65155207位转正会员，挑战转正答题考试获得61分，获得\"学霸\"挂件，有效期8天。", "pictures": [ { "img_src": "https://i0.hdslb.com/bfs/member/b589cc0ebfe818b6c0a1f01a30f8f9020b949da7.png", "img_width": 750, "img_height": 750, "img_size": 300, "img_tags": null } ], "count": 1, "ctime": 1582342355, "view": 1440, "like": 5, "dyn_id": "358646755819935423" } ] } }'
-    b = '{ "name":"Bill", "age":63, "city":"Seatle"}'
-    print(log_msg(b, 1))

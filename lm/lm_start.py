@@ -18,6 +18,7 @@ def _async_raise(tid, exctype):
     tid = ctypes.c_long(tid)
     if not inspect.isclass(exctype):
         exctype = type(exctype)
+    # 停止线程
     res = ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, ctypes.py_object(exctype))
     if res > 1:
         ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, None)
@@ -47,8 +48,10 @@ class LMStart(object):
             retry = 0   # 关闭线程重试次数
             status_thread = threading.Thread(target=self.send_heartbeat)
             status_thread.start()
+            # 生成任务队列
             task_queue = Queue()
             task_status_queue = Queue()
+            # 启动线程获取引擎任务
             task_thread = threading.Thread(target=self.get_task, args=(task_queue, task_status_queue, exec_status))
             task_thread.start()
             while retry < 3:    # 线程重试超过3次则默认线程需要重启
@@ -67,17 +70,21 @@ class LMStart(object):
                         retry += 1
                         continue
                 try:
+                    # 获得队列任务
                     task = task_queue.get(True, 1)
                 except Exception:
                     continue
                 else:
                     DebugLogger("接受任务成功 启动执行进程")
+                    # 生成结果队列
                     case_result_queue = Queue()
                     current_exec_status = Value("i", 0)   # 0 执行中、 1 执行结束
                     run_process = Process(target=self.run_test, args=(task, case_result_queue, current_exec_status))
                     run_process.start()
+                    # 启动结果线程
                     report_process = Process(target=self.push_result, args=(exec_status, case_result_queue))
                     report_process.start()
+                    # 启动上传报告线程
                     upload_process = Process(target=self.upload_image, args=(task, current_exec_status))
                     upload_process.start()
                 finally:

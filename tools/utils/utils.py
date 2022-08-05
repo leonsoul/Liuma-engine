@@ -242,6 +242,7 @@ def relate_sort(data, data_from):
 
 
 def get_json_relation(data: dict, data_from: str):
+    # todo 给这个代码写注释
     return relate_sort(json_to_path(data), data_from)
 
 

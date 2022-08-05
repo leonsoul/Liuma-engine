@@ -9,8 +9,6 @@ from lm.lm_config import LOG_PATH
 
 log_path = os.path.join(LOG_PATH, "engine_status.log")
 
-# print(log_path)
-
 
 class LMReport(object):
     def __init__(self, exec_status, case_result_queue):
@@ -60,7 +58,6 @@ class LMReport(object):
                     if during < 3:
                         pass
                     else:
-                        DebugLogger('输出日志：' + str(not_send_result), file_path=log_path)
                         self.api.upload_result(task_id, data_type, not_send_result)
                         last_send_time = current_time
                         not_send_result.clear()
