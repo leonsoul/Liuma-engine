@@ -16,6 +16,8 @@ class ApiRequestCollector:
         self.body_type = None
         self.others = {}
         self.controller = {}
+        self.looper = {}
+        self.conditions = []
         self.assertions = []
         self.relations = []
 
@@ -83,6 +85,13 @@ class ApiRequestCollector:
             api_data["controller"]["useSession"] = "false"  # 默认不使用session
         if "saveSession" not in api_data["controller"]:
             api_data["controller"]["saveSession"] = "false"  # 默认不保存session
+        if "preScript" not in api_data["controller"]:
+            api_data["controller"]["preScript"] = None  # 默认没有前置脚本
+        if "postScript" not in api_data["controller"]:
+            api_data["controller"]["postScript"] = None  # 默认没有后置脚本
+        if "errorContinue" not in api_data["controller"]:
+            api_data["controller"]["errorContinue"] = "false"  # 默认错误后不再执行
+            api_data["controller"]["saveSession"] = "false"  # 默认不保存session
         if "requireVerify" not in api_data["controller"]:
             api_data["controller"]["requireVerify"] = None  # 默认不需要验证
         if "requireStream" not in api_data["controller"]:
@@ -102,6 +111,14 @@ class ApiRequestCollector:
         if api_data["controller"]['token'] == "false":
             api_data["controller"]["token"] = '0'
         self.controller = api_data["controller"]
+
+    def collect_conditions(self, api_data):
+        if "whetherExec" in api_data["controller"]:
+            self.conditions = json.loads(api_data["controller"]["whetherExec"])
+
+    def collect_looper(self, api_data):
+        if "loopExec" in api_data["controller"]:
+            self.looper = json.loads(api_data["controller"]["loopExec"])
 
     def collect_query(self, api_data):
         if len(api_data["query"]) > 0:
@@ -139,7 +156,7 @@ class ApiRequestCollector:
     def collect_body(self, api_data):
         body = api_data["body"]
         if body is None:
-            return 
+            return
         self.body_type = body["type"]
         if body["type"] == "json":
             if body["json"] != '':
@@ -161,16 +178,31 @@ class ApiRequestCollector:
                 self.others["files"] = files
 
     def collect_stream(self, api_data):
-        self.others["stream"] = self.controller["requireStream"]
+        if "requireStream" in api_data["controller"]:
+            if api_data["controller"]["requireStream"].lower() == "true":
+                self.others["stream"] = True
+            else:
+                self.others["stream"] = False
+        else:
+            self.others["stream"] = None
 
     def collect_verify(self, api_data):
-        self.others["verify"] = self.controller["requireVerify"]
+        if "requireVerify" in api_data["controller"]:
+            if api_data["controller"]["requireVerify"].lower() == "true":
+                self.others["verify"] = True
+            else:
+                self.others["verify"] = False
+        else:
+            self.others["verify"] = None
 
     def collect_auth(self, api_data):
         pass
 
     def collect_timeout(self, api_data):
-        pass
+        if "timeout" in api_data["controller"]:
+            self.others["timeout"] = int(api_data["controller"]["timeout"])
+        else:
+            self.others["timeout"] = None
 
     def collect_allow_redirects(self, api_data):
         pass
