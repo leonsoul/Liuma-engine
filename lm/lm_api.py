@@ -56,11 +56,13 @@ class LMApi(Api):
         }
         try:
             res = self.request(url=url, data=data)
+            print("返回结果",res.text)
             if res.status_code == 200:
                 status = res.json()["status"]
                 if status == 0:
                     token = res.json()["data"]
                     self.save_token(token)
+                    print(token)
                 elif status == 2050:
                     DebugLogger("调用申请token接口 引擎id或秘钥错误")
                 else:
@@ -242,7 +244,7 @@ class LMApi(Api):
                 ErrorLogger("调用下载测试文件接口 发生错误 错误信息为：%s" % e)
             break
 
-    def upload_screen_shot(self,task_image_path, uuid, log_path):
+    def upload_screen_shot(self, task_image_path, uuid, log_path):
         """"上传执行截图"""
         url = self.url + "/openapi/engine/screenshot/upload"
         for index in range(2):
