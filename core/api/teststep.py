@@ -46,7 +46,8 @@ class ApiTestStep:
                     c_key = REQUEST_CNAME_MAP[key] if key in REQUEST_CNAME_MAP else key
                     if key == 'files':
                         if isinstance(value, dict):
-                            request_log += '{}: {}<br>'.format(c_key, [i[0] for i in value.values()])
+                            request_log += '{}: {}<br>'.format(c_key,
+                                                               ["文件长度%s: %s" % (k, len(v)) for k, v in value.items()])
                         if isinstance(value, list):
                             request_log += '{}: {}<br>'.format(c_key, [i[1][0] for i in value])
                     else:
@@ -57,6 +58,20 @@ class ApiTestStep:
             if 'files' in self.collector.others and self.collector.others['files'] is not None:
                 self.pop_content_type()
             url = url_join(self.collector.url, self.collector.path)
+
+            # 接口前置处理加密 --alltuu
+            if self.collector.controller['encryption'].lower() == "true":
+                # 只是简单的加密
+                signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'],
+                                                                      self.collector.others['data'])
+                url = url + '/' + signature_string
+            if self.collector.controller['encryption'].lower() == "neibujiami":
+                signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'],
+                                                                      self.collector.others['data'])
+                self.collector.others['data'].updata({signature: signature})
+            elif self.collector.controller['encryption'].lower() == "qianmianbujiami":
+                pass
+
             if int(self.collector.controller["sleepBeforeRun"]) > 0:
                 sleep(int(self.collector.controller["sleepBeforeRun"]))
                 self.test.debugLog("请求前等待%sS" % int(self.collector.controller["sleepBeforeRun"]))
@@ -70,12 +85,6 @@ class ApiTestStep:
             elif self.collector.controller["saveSession"].lower() == "true":
                 session = Session()
                 res = session.request(self.collector.method, url, **self.collector.others)
-            # 接口前置处理加密 --alltuu
-            elif self.collector.controller['encryption'].lower() == "true":
-                session = Session()
-                signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'], self.collector.others['data'])
-                SplicingUrl = url + '/' + signature_string
-                res = session.request(self.collector.method, SplicingUrl, **self.collector.others['params'])
             else:
                 res = request(self.collector.method, url, **self.collector.others)
             end_time = datetime.datetime.now()
@@ -101,9 +110,32 @@ class ApiTestStep:
                 sleep(int(self.collector.controller["sleepAfterRun"]))
                 self.test.debugLog("请求后等待%sS" % int(self.collector.controller["sleepAfterRun"]))
 
-    def judge_condition(self):
-        conditions = json.loads(self.collector.controller["whetherExec"])
-        for condition in conditions:
+    def looper_controller(self, case, api_list, index):
+        """循环控制器"""
+        if "type" in self.collector.looper and self.collector.looper["type"] == "WHILE":
+            # while循环 且兼容之前只有for循环
+            loop_start_time = datetime.datetime.now()
+            while self.collector.looper["timeout"] == 0 or (datetime.datetime.now() - loop_start_time).seconds * 1000 \
+                    < self.collector.looper["timeout"]:     # timeout为0时可能会死循环 慎重选择
+                # 渲染循环控制控制器 每次循环都需要渲染
+                _looper = case._render_looper(self.collector.looper)
+                result, _ = LMAssert(_looper['assertion'], _looper['target'], _looper['expect']).compare()
+                if not result:
+                    break
+                _api_list = api_list[index - 1: (index + _looper["num"] - 1)]
+                case._loop_execute(_api_list, api_list[index]["apiId"])
+        else:
+            # 渲染循环控制控制器 for只需渲染一次
+            _looper = case._render_looper(self.collector.looper)
+            for i in range(_looper["times"]):  # 本次循环次数
+                self.context[_looper["indexName"]] = i + 1  # 给循环索引赋值第几次循环 母循环和子循环的索引名不应一样
+                _api_list = api_list[index - 1: (index + _looper["num"] - 1)]
+                case._loop_execute(_api_list, api_list[index]["apiId"])
+
+    def condition_controller(self, case):
+        """条件控制器"""
+        _conditions = case._render_conditions(self.collector.conditions)
+        for condition in _conditions:
             try:
                 result, msg = LMAssert(condition['assertion'], condition['target'], condition['expect']).compare()
                 if not result:
@@ -113,28 +145,13 @@ class ApiTestStep:
         else:
             return True
 
-    def loop_exec(self):
-        loop = json.loads(self.collector.controller["loopExec"])
-        print(loop)
-        _loop_index_name = loop["indexName"]
-        try:
-            _loop_times = int(loop["times"])
-        except:
-            _loop_times = 1
-        try:
-            _loop_num = int(loop["num"])
-        except:
-            _loop_num = 1
-        return _loop_index_name, _loop_times, _loop_num
-
     def exec_script(self, code):
         """执行前后置脚本"""
-
         def sys_put(name, val):
             self.context[name] = val
 
         def sys_get(name):
-            if name in self.params:  # 优先从公参中取值
+            if name in self.params:   # 优先从公参中取值
                 return self.params[name]
             return self.context[name]
 
@@ -221,7 +238,6 @@ class ApiTestStep:
             'result': final_result,
             'checkMessages': check_messages
         }
-
     def pop_content_type(self):
         pop_key = None
         for key, value in self.collector.others['headers'].items():
