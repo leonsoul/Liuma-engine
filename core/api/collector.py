@@ -95,6 +95,8 @@ class ApiRequestCollector:
             api_data["controller"]["encryption"] = "false"  # 默认不需要加密
         if api_data["controller"]['token'] == "false":
             api_data["controller"]["token"] = '0'
+        else:
+            api_data["controller"]["token"] = '80d27bf3a922d452af17105f3da7a8fe'
         self.controller = api_data["controller"]
 
     def collect_conditions(self, api_data):
@@ -113,16 +115,18 @@ class ApiRequestCollector:
 
     def collect_headers(self, api_data):
         self.collect_other(api_data, 'headers')
+        # 根据请求体中的body的type来生成headers的Content-Type，代码在collect_body函数中
         if self.others['headers'] is None:
             self.others['headers'] = {'Content-Type': 'application/json;charset=UTF-8'}
-        elif 'content-type' not in [key.lower() for key in self.others['headers'].keys()]:
-            self.others['headers']['Content-Type'] = 'application/json;charset=UTF-8'
-        else:
-            for key, value in self.others['headers'].items():
-                if key.lower() == 'content-type':
-                    if value is None or len(value) == 0:
-                        self.others['headers'][key] = 'application/json;charset=UTF-8'
-                    break
+
+        # elif 'content-type' not in [key.lower() for key in self.others['headers'].keys()]:
+        #     self.others['headers']['Content-Type'] = 'application/json;charset=UTF-8'
+        # else:
+        #     for key, value in self.others['headers'].items():
+        #         if key.lower() == 'content-type':
+        #             if value is None or len(value) == 0:
+        #                 self.others['headers'][key] = 'application/json;charset=UTF-8'
+        #             break
 
     def collect_cookies(self, api_data):
         if self.others['headers'] is not None:
@@ -144,11 +148,15 @@ class ApiRequestCollector:
             return
         self.body_type = body["type"]
         if body["type"] == "json":
+            # cxy新增 如果请求体是json格式的话，那么请求头中的headers为application/json;charset=UTF-8
+            self.others['headers'].update({'Content-Type': 'application/json;charset=UTF-8'})
             if body["json"] != '':
                 body_json = json.loads(body["json"])
                 if len(body_json) > 0:
                     self.others["json"] = body_json
         elif body["type"] in ("form-urlencoded", "form-data"):
+            # cxy新增 如果请求体是json格式的话，那么请求头中的headers为application/x-www-form-urlencoded;charset=UTF-8
+            self.others['headers'].update({'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'})
             body_data, body_file = handle_form_data(body["form"])
             if len(body_data) > 0:
                 self.others["data"] = body_data

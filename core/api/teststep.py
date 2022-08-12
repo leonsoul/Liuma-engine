@@ -52,7 +52,7 @@ class ApiTestStep:
                             request_log += '{}: {}<br>'.format(c_key, [i[1][0] for i in value])
                     else:
                         request_log += '{}: {}<br>'.format(c_key, log_msg(value))
-            self.test.debugLog(request_log[:-4])
+
             if self.collector.body_type == "form-urlencoded":
                 self.collector.others['data'] = urlencode(self.collector.others['data'])
             if 'files' in self.collector.others and self.collector.others['files'] is not None:
@@ -64,7 +64,7 @@ class ApiTestStep:
                 # 只是简单的加密
                 signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'],
                                                                       self.collector.others['data'])
-                url = url + '/' + signature_string
+                url = url + '/' + 'v' + signature_string
             if self.collector.controller['encryption'].lower() == "neibujiami":
                 signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'],
                                                                       self.collector.others['data'])
@@ -90,6 +90,9 @@ class ApiTestStep:
             end_time = datetime.datetime.now()
             self.test.recordTransDuring(int((end_time - start_time).microseconds / 1000))
             self.save_response(res)
+            request_log += '<br>【请求完整链接】:{}<br>'.format(url)
+            request_log += '<br>【请求参数】:{}<>'.format(self.collector.others)
+            self.test.debugLog(request_log[:])
             response_log = '【响应信息】:<br>'
             response_log += '响应码: {}<br>'.format(self.status_code)
             response_log += '响应头: {}<br>'.format(dict2str(self.response_headers))
@@ -116,7 +119,7 @@ class ApiTestStep:
             # while循环 且兼容之前只有for循环
             loop_start_time = datetime.datetime.now()
             while self.collector.looper["timeout"] == 0 or (datetime.datetime.now() - loop_start_time).seconds * 1000 \
-                    < self.collector.looper["timeout"]:     # timeout为0时可能会死循环 慎重选择
+                    < self.collector.looper["timeout"]:  # timeout为0时可能会死循环 慎重选择
                 # 渲染循环控制控制器 每次循环都需要渲染
                 _looper = case._render_looper(self.collector.looper)
                 result, _ = LMAssert(_looper['assertion'], _looper['target'], _looper['expect']).compare()
@@ -147,11 +150,12 @@ class ApiTestStep:
 
     def exec_script(self, code):
         """执行前后置脚本"""
+
         def sys_put(name, val):
             self.context[name] = val
 
         def sys_get(name):
-            if name in self.params:   # 优先从公参中取值
+            if name in self.params:  # 优先从公参中取值
                 return self.params[name]
             return self.context[name]
 
@@ -238,6 +242,7 @@ class ApiTestStep:
             'result': final_result,
             'checkMessages': check_messages
         }
+
     def pop_content_type(self):
         pop_key = None
         for key, value in self.collector.others['headers'].items():

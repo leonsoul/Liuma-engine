@@ -141,11 +141,13 @@ class Signature:
         return signature_generate
 
 
-# if __name__ == '__main__':
-#     strl = 'name=15191333333&pwd=25d55ad283aa400af464c76d713c07ad'
-#     arg = {}
-#     str_list = []
-#     for i in strl.split('&'):
-#         str_list.append(i.split('='))
-#     dict_map = dict(str_list)
-#     print(dict_map)
+if __name__ == '__main__':
+    # strl = 'name=15191333333&pwd=25d55ad283aa400af464c76d713c07ad'
+    # arg = {}
+    # str_list = []
+    # for i in strl.split('&'):
+    #     str_list.append(i.split('='))
+    # dict_map = dict(str_list)
+    # print(dict_map)
+    print(  Signature.sign_url_v4('80d27bf3a922d452af17105f3da7a8fe','albumIdN=2143077302'))
+
