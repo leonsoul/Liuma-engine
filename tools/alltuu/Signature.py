@@ -4,6 +4,8 @@ import binascii
 import time
 import uuid
 from hashlib import md5
+from urllib.parse import unquote
+
 from Cryptodome.Hash import SHA256
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Signature import PKCS1_v1_5
@@ -52,7 +54,7 @@ class Signature:
         timestamp = str(int(time.time() * 1000))  # 请求发起时间戳
         std_args_map = {"from": source, "timestamp": timestamp, "token": token, "version": api_v}
         # 把标准的四个参数组成的map和非标准参数args_map合并成一个map, 用来进行签名
-        signature_generate = Signature().Encryption_args_map(args_map,std_args_map)
+        signature_generate = Signature().Encryption_args_map(args_map, std_args_map)
         signature_string = "%s-%s-%s-%s-%s" % (source, timestamp, token, api_v, signature_generate)
         if limit:
             Guid = str(uuid.uuid3(uuid.NAMESPACE_DNS, str(uuid.uuid1()))).replace("-", "")
@@ -120,12 +122,13 @@ class Signature:
             raise TypeError(msg)
 
     @staticmethod
-    def Encryption_args_map(args_map, std_args_map):
+    def Encryption_args_map(args_map: str, std_args_map):
         if args_map is None:
             validate_map = dict(std_args_map)
         else:
+            args_map = args_map.replace('+', "%20")
             str_list = []
-            for i in args_map.split('&'):
+            for i in unquote(args_map).split('&'):
                 str_list.append(i.split('='))
             dict_map = dict(str_list)
             validate_map = dict(dict_map, **std_args_map)
@@ -149,5 +152,4 @@ if __name__ == '__main__':
     #     str_list.append(i.split('='))
     # dict_map = dict(str_list)
     # print(dict_map)
-    print(  Signature.sign_url_v4('80d27bf3a922d452af17105f3da7a8fe','albumIdN=2143077302'))
-
+    print(Signature.sign_url_v4('80d27bf3a922d452af17105f3da7a8fe', 'albumIdN=2143077302'))

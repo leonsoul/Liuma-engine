@@ -6,6 +6,7 @@ from core.template import Template
 from core.api.teststep import ApiTestStep, dict2str
 from jsonpath_ng.parser import JsonPathParser
 
+from lm.lm_log import DebugLogger
 from tools.utils.utils import get_case_message, get_json_relation, handle_params_data
 
 
@@ -107,7 +108,9 @@ class ApiTestCase:
         return self.template.render()
 
     def _render_content(self, step):
+        # 初始化模板，将收集到的路径传进去，加载文件，清空堆栈和map
         self.template.init(step.collector.path)
+
         step.collector.path = self.template.render()
         if step.collector.others.get('params') is not None:
             query = step.collector.others.pop('params')
@@ -138,10 +141,14 @@ class ApiTestCase:
         # 最后渲染body数据
         if body is not None:
             if step.collector.body_type in ("json", "form-urlencoded", "form-data"):
+                # 将body按jsonpath的格式提取出来，以列表的形式
                 for expr, value in get_json_relation(body, "body"):
+                    # 如果value的中有{{index}t}，将value存到模板里
+                    print(expr,value)
                     if isinstance(value, str) and self.comp.search(value) is not None:
                         self.template.init(value)
                         render_value = self.template.render()
+                        # 将data中的{{a}}数据更新为对应的变量
                         expression = self.json_path_parser.parse(expr)
                         expression.update(body, render_value)
                         self.template.request_body = body
@@ -149,6 +156,7 @@ class ApiTestCase:
                 self.template.init(body)
                 render_value = self.template.render()
                 self.template.request_body = render_value
+            # 将others的'data'或'query'值替换成新的
             step.collector.others.setdefault(pop_key, self.template.request_body)
         if step.collector.assertions is not None:
             self.template.init(step.collector.assertions)
@@ -156,3 +164,8 @@ class ApiTestCase:
         if step.collector.relations is not None:
             self.template.init(step.collector.relations)
             step.collector.relations = self.template.render()
+        if step.collector.controller['token'] == '{{token}}':
+            self.template.init(step.collector.controller['token'])
+            render_value = self.template.render()
+            step.collector.controller['token'] = render_value
+            DebugLogger(step.collector.controller['token'])

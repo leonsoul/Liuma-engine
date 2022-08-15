@@ -4,6 +4,8 @@ from urllib.parse import quote
 import jsonpath
 import copy
 
+from lm.lm_log import DebugLogger
+
 
 def extract_by_jsonpath(api_data: dict, expression: str):
     value = jsonpath.jsonpath(api_data, expression)
@@ -180,6 +182,16 @@ def handle_files(files):
 
 
 def json_to_path(data):
+    """
+     将json设为按路径转换为字符串，如果是列表的话就拿列表的index作为子key
+    data :{
+        'a':
+            [{'b': 'c'},
+             {'d': 'e'}]
+    }
+    return {'_REQUEST_BODY.a[1].d': 'e', '_REQUEST_BODY.a[0].b': 'c'}
+    """
+
     queue = [("_REQUEST_BODY", data)]
     fina = {}
     while len(queue) != 0:
@@ -188,16 +200,19 @@ def json_to_path(data):
             fina["%s" % path] = tar
         if isinstance(tar, dict):
             for key, value in tar.items():
+                # 如果key是数字的话，将key变为字符串
                 try:
-                    if key.isdigit():
+                    if key.isdigit():  # isdigit() 方法检测字符串是否只由数字组成，只对 0 和 正数有效。
                         key = "'%s'" % str(key)
                 except:
                     key = "'%s'" % str(key)
+                #     如果值是字典或列表的话，将path.key作为新的key加入队列中，否则的话将path.key作为新的key加入fina中
                 if isinstance(value, dict) or isinstance(value, list):
                     queue.append(("%s.%s" % (path, key), value))
                 else:
                     fina["%s.%s" % (path, key)] = value
         else:
+            # tar可能是列表，元组，单个元素，如果列表中的元素仍为字典或列表的话，继续循环，如果是列表的话
             for index, value in enumerate(tar):
                 if isinstance(value, dict) or isinstance(value, list):
                     queue.append(("%s[%d]" % (path, index), value))
@@ -207,15 +222,18 @@ def json_to_path(data):
 
 
 def relate_sort(data, data_from):
+    # 将_REQUEST_BODY和_REQUEST_QUERY改为 $ 并且存到列表中，按没有关联的数据-关联的数据
     not_relate_list = []
     relate_list = []
     for key, value in data.items():
+        # 对value根据是否有关联、需要特殊处理进行分类，如果有#{的话，将这个key，value加到有关联的变量中，非则加到没有关联的变量中
         if "#{" in str(value):
             relate_list.append((key.replace("_REQUEST_BODY", "$"), value))
         else:
             not_relate_list.append((key.replace("_REQUEST_BODY", "$"), value))
     copy_list = copy.deepcopy(relate_list)
     sorted_list = []
+    # 应该不关键、将不同关联数据的key和value中有重复数据去掉
     for index in range(len(relate_list)):
         for (key, value) in copy_list:
             for (com_key, com_value) in copy_list:
@@ -242,7 +260,16 @@ def relate_sort(data, data_from):
 
 
 def get_json_relation(data: dict, data_from: str):
-    # todo 给这个代码写注释
+    """
+
+    :param data:   {'a': {'c': '{{login}}'},
+                             'c': '{a.c}',
+                             'd': 'f'
+                             }
+    :param data_from:
+    :return:[('$.c', '{a.c}'), ('$.d', 'f'), ('$.a.c', '{{login}}')]
+    """
+    DebugLogger(str(data))
     return relate_sort(json_to_path(data), data_from)
 
 
@@ -252,3 +279,10 @@ class ExtractValueError(Exception):
 
 class ProxiesError(Exception):
     """错误代理"""
+
+
+if __name__ == '__main__':
+    print(get_json_relation({'a': {'c': '{{login}}'},
+                             'c': '{a.c}',
+                             'd': 'f'
+                             }, 'body'))

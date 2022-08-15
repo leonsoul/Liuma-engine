@@ -1,6 +1,7 @@
 import json
 import re
 
+from lm.lm_log import DebugLogger
 from tools.utils.utils import proxies_join, handle_form_data, handle_files
 
 
@@ -95,8 +96,8 @@ class ApiRequestCollector:
             api_data["controller"]["encryption"] = "false"  # 默认不需要加密
         if api_data["controller"]['token'] == "false":
             api_data["controller"]["token"] = '0'
-        else:
-            api_data["controller"]["token"] = '80d27bf3a922d452af17105f3da7a8fe'
+        # else:
+        #     api_data["controller"]["token"] = '80d27bf3a922d452af17105f3da7a8fe'
         self.controller = api_data["controller"]
 
     def collect_conditions(self, api_data):
@@ -159,6 +160,7 @@ class ApiRequestCollector:
             self.others['headers'].update({'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'})
             body_data, body_file = handle_form_data(body["form"])
             if len(body_data) > 0:
+                DebugLogger('collect_body:{}'.format(str(body_data)))
                 self.others["data"] = body_data
             if len(body_file) > 0:
                 self.others["files"] = body_file
@@ -210,6 +212,7 @@ class ApiRequestCollector:
         self.collect_context(api_data, 'assertions')
 
     def collect_relations(self, api_data):
+        """获得逻辑控件"""
         self.collect_context(api_data, 'relations')
 
     def collect(self, api_data):
@@ -237,6 +240,7 @@ class ApiRequestCollector:
         self.collect_cert(api_data)
 
         self.collect_assertions(api_data)
+
         self.collect_relations(api_data)
 
 

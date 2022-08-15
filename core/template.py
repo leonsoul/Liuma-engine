@@ -43,7 +43,12 @@ class Template:
         self.request_body = body
 
     def render(self):
+        """
+        将self.data中用{{}}包裹着的变量提取出来，然后从self.context中将该变量的值提取出来
+        :return:
+        """
         start_stack = list()
+        # 定义标识开始和结束所占字符的长度
         start_length = len(self.variable_start_string)
         end_length = len(self.variable_end_string)
         top = 0
