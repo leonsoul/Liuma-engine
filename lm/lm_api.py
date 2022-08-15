@@ -56,13 +56,11 @@ class LMApi(Api):
         }
         try:
             res = self.request(url=url, data=data)
-            print("返回结果",res.text)
             if res.status_code == 200:
                 status = res.json()["status"]
                 if status == 0:
                     token = res.json()["data"]
                     self.save_token(token)
-                    print(token)
                 elif status == 2050:
                     DebugLogger("调用申请token接口 引擎id或秘钥错误")
                 else:
@@ -109,7 +107,6 @@ class LMApi(Api):
                 "engineCode": self.engine,
                 "timestamp": int(time.time())
             }
-            # print('获取任务')
             try:
                 if index > 0:
                     DebugLogger("-------重试调用获取引擎任务接口--------")
@@ -117,7 +114,6 @@ class LMApi(Api):
                 if res.status_code == 200:
                     status = res.json()["status"]
                     if status == 0:
-                        # print(res.text)
                         return res.json()["data"]
                     elif status in (2020, 2030, 2040):
                         DebugLogger("token校验错误 重新申请token")
@@ -125,11 +121,7 @@ class LMApi(Api):
                         continue
                     else:
                         DebugLogger("获取引擎任务请求失败")
-                    DebugLogger("获取引擎任务参数:{}".format(res.text))
-                    print("获取引擎任务参数:{}", res.text)
                 else:
-                    DebugLogger("获取引擎任务失败:{}".format(res.text))
-                    print("获取引擎任务失败:{}", res.text)
                     DebugLogger("调用获取引擎任务接口 响应状态为：%s" % res.status_code)
             except Exception as e:
                 ErrorLogger("调用获取引擎任务接口 发生错误 错误信息为：%s" % e)
@@ -244,7 +236,7 @@ class LMApi(Api):
                 ErrorLogger("调用下载测试文件接口 发生错误 错误信息为：%s" % e)
             break
 
-    def upload_screen_shot(self, task_image_path, uuid, log_path):
+    def upload_screen_shot(self,task_image_path, uuid, log_path):
         """"上传执行截图"""
         url = self.url + "/openapi/engine/screenshot/upload"
         for index in range(2):
@@ -294,7 +286,6 @@ class LMApi(Api):
                 if res.status_code == 200:
                     status = res.json()["status"]
                     if status == 0:
-                        # print(res.text)
                         return res.json()["data"]
                     elif status in (2020, 2030, 2040):
                         DebugLogger("token校验错误 重新申请token")

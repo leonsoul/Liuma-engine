@@ -96,8 +96,6 @@ class ApiRequestCollector:
             api_data["controller"]["encryption"] = "false"  # 默认不需要加密
         if api_data["controller"]['token'] == "false":
             api_data["controller"]["token"] = '0'
-        # else:
-        #     api_data["controller"]["token"] = '80d27bf3a922d452af17105f3da7a8fe'
         self.controller = api_data["controller"]
 
     def collect_conditions(self, api_data):
