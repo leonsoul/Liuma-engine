@@ -6,7 +6,7 @@ image
 
 log
 
-data
+/data
 
 browser/**.exe
 
