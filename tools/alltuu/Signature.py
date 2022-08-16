@@ -122,16 +122,12 @@ class Signature:
             raise TypeError(msg)
 
     @staticmethod
-    def Encryption_args_map(args_map: str, std_args_map):
+    def Encryption_args_map(args_map, std_args_map):
         if args_map is None:
             validate_map = dict(std_args_map)
-        else:
-            args_map = args_map.replace('+', "%20")
-            str_list = []
-            for i in unquote(args_map).split('&'):
-                str_list.append(i.split('='))
-            dict_map = dict(str_list)
-            validate_map = dict(dict_map, **std_args_map)
+        elif isinstance(args_map, dict):
+            validate_map = dict(args_map, **std_args_map)
+
         # 把所有参数按照参数名称进行字典序升序排序
         items = sorted(validate_map.items())
         validate_string_array = [value for key, value in items]
@@ -143,6 +139,21 @@ class Signature:
         signature_generate = md5_generator.hexdigest()
         return signature_generate
 
+    @staticmethod
+    def concatenating_url(args_map):
+        """拼接URL"""
+        url_list = []
+        for key, value in args_map.items():
+            url_list.append(str(key) + str(value))
+        return "/".join(url_list)
+
+    @staticmethod
+    def decode_url(args_map):
+        args_map = args_map.replace('+', "%20")
+        str_list = []
+        for i in unquote(args_map).split('&'):
+            str_list.append(i.split('='))
+        return dict(str_list)
 
 if __name__ == '__main__':
     # strl = 'name=15191333333&pwd=25d55ad283aa400af464c76d713c07ad'

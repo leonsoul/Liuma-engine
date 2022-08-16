@@ -52,19 +52,31 @@ class ApiTestStep:
                             request_log += '{}: {}<br>'.format(c_key, [i[1][0] for i in value])
                     else:
                         request_log += '{}: {}<br>'.format(c_key, log_msg(value))
+            # 如果是x-www-form-urlencoded 格式，字段中有使用list或dict会报错，但是我们在系统中都会使用字符串代替，所以这段代码先注释掉了
+            # if self.collector.body_type == "form-urlencoded" and 'data' in self.collector.others:
+            #     self.collector.others['data'] = urlencode(self.collector.others['data'])
 
-            if self.collector.body_type == "form-urlencoded":
-                self.collector.others['data'] = urlencode(self.collector.others['data'])
             if 'files' in self.collector.others and self.collector.others['files'] is not None:
                 self.pop_content_type()
             url = url_join(self.collector.url, self.collector.path)
 
             # 接口前置处理加密 --alltuu
             if self.collector.controller['encryption'].lower() == "true":
+                args_map = {}
+                # 这里的签名有些问题
+                if self.collector.others['params'] is not None:
+                    args_map.update(self.collector.others['params'])
+                    url += '/' + Signature().concatenating_url(self.collector.others['params'])
+                # 有两个选择，一个是在转义之前保存一分数据，另外一种是单独解密出来
+                if 'data' in self.collector.others:
+                    # if self.collector.body_type == "form-urlencoded":
+                    #     args_map.update(Signature().decode_url(self.collector.others['data']))
+                    # else:
+                    args_map.update(self.collector.others['data'])
                 # 只是简单的加密
-                signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'],
-                                                                      self.collector.others['data'])
+                signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'], args_map)
                 url = url + '/' + 'v' + signature_string
+
             if self.collector.controller['encryption'].lower() == "neibujiami":
                 signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'],
                                                                       self.collector.others['data'])
