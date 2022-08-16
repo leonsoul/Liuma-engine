@@ -37,8 +37,8 @@ class LMRun(object):
         result = lm_result.LMResult(self.default_result, self.default_lock, self.queue, verbosity=self.verbosity)
 
         try:
-            suite(result)
             # 执行测试用例
+            suite(result)
         except Exception as ex:
             ErrorLogger("Failed to run test(RunTime:run%s & ThreadName:%s), Error info:%s" %
                         (self.run_index, threading.current_thread().name, ex))

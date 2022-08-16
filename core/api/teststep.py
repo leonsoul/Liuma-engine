@@ -289,3 +289,8 @@ class RemoveParamError(Exception):
 
 class AssertRelationError(Exception):
     """断言关系错误"""
+
+
+if __name__ == '__main__':
+    import datetime
+    datetime.timedelta(hours=8)

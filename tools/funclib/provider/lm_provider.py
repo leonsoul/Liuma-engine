@@ -124,7 +124,7 @@ class LiuMaProvider(BaseProvider):
     def pinyin(self, cname: str):
         return reduce(lambda x, y: x + y, lazy_pinyin(cname))
 
-    def substing(self, s, start: int=0, end: int=-1):
+    def substing(self, s, start: int = 0, end: int = -1):
         return s[start:end]
 
     def extract(self, data):

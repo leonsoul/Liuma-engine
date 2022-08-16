@@ -44,9 +44,17 @@ class LMSetting(object):
         os.remove(file_path)
 
     def task_analysis(self):
+        """
+        任务分析
+
+        :return:
+        """
+        # 初始化测试计划
         test_plan = {}
+        print('self.task["taskType"]', self.task["taskType"])
         if self.task["taskType"] != 'debug':
             file_path = self.data_pull()
+            print('file_path', file_path)
             if file_path is not None:
                 self.file_unzip(file_path)
             for collection_map in self.task["testCollectionList"]:
@@ -68,13 +76,15 @@ class LMSetting(object):
                         "test_type": case["caseType"],
                         "test_class": "class_" + collection,
                         "test_case": "case_%s_%s" % (case["caseId"], case["index"]),
-                        "test_data": os.path.join(self.data_path, self.task["taskId"], collection, case["caseId"] + ".json")
+                        "test_data": os.path.join(self.data_path, self.task["taskId"], collection,
+                                                  case["caseId"] + ".json")
                     }
                     if collection not in test_plan.keys():
                         test_plan[collection] = []
                     test_plan[collection].append(test_case)
         else:
             collection_map = self.task["testCollectionList"][0]
+
             collection = collection_map["collectionId"]
             driver = {
                 "browser_opt": self.config.browser_opt,
@@ -90,7 +100,8 @@ class LMSetting(object):
                 "task_id": self.task["taskId"],
                 "test_type": collection_map["testCaseList"][0]["caseType"],
                 "test_class": "class_" + collection,
-                "test_case": "case_%s_%s" % (collection_map["testCaseList"][0]["caseId"], collection_map["testCaseList"][0]["index"]),
+                "test_case": "case_%s_%s" % (
+                    collection_map["testCaseList"][0]["caseId"], collection_map["testCaseList"][0]["index"]),
                 "test_data": self.task["debugData"]
             }
             test_plan[collection] = [test_case]
@@ -103,6 +114,7 @@ class LMSetting(object):
         task_id = self.task["taskId"]
         queue.put("run_all_start--%s" % task_id)
         for index in range(runTime):
+            # 第一次全部运行，之后运行失败的用例
             if index == 0:
                 test_plan = plan
             else:
@@ -144,4 +156,3 @@ class LMSetting(object):
                 if len(test_plan[collection]) == 0:
                     del test_plan[collection]
         return test_plan
-

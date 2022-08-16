@@ -83,6 +83,7 @@ def extract(name: str, data: dict, expression: str):
 
 
 def get_case_message(data):
+    # print('get_case_message',data)
     if isinstance(data, dict):
         return data
     else:

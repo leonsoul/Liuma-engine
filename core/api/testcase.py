@@ -143,7 +143,7 @@ class ApiTestCase:
             if step.collector.body_type in ("json", "form-urlencoded", "form-data"):
                 # 将body按jsonpath的格式提取出来，以列表的形式
                 for expr, value in get_json_relation(body, "body"):
-                    # 如果value的中有{{index}t}，将value存到模板里
+                    # 如果value的中有{{index}}，将value存到模板里
                     if isinstance(value, str) and self.comp.search(value) is not None:
                         self.template.init(value)
                         render_value = self.template.render()

@@ -12,11 +12,12 @@ from tools.utils.utils import extract_by_jsonpath, quotation_marks
 
 class Template:
 
-    def __init__(self, context, functions, params, variable_start_string='{{', variable_end_string='}}', function_prefix='@', param_prefix='$'):
+    def __init__(self, context, functions, params, variable_start_string='{{', variable_end_string='}}',
+                 function_prefix='@', param_prefix='$'):
         self.param_prefix = param_prefix
         self.data = None
         self.context = context  # 关联参数
-        self.params = params    # 公共参数
+        self.params = params  # 公共参数
         self.variable_start_string = variable_start_string
         self.variable_end_string = variable_end_string
         self.function_prefix = function_prefix
@@ -27,6 +28,7 @@ class Template:
         self.request_headers = None
         self.request_query = None
         self.request_body = None
+        # 读取传进来的函数，将函数用faker绑定到tools.funclib.provider.lm_provider的模块下，functions.name命名，调用时使用func_lib('name')可以调用
         self.func_lib = get_func_lib(functions)
         self.bytes_map = dict()
         self.parser = JsonPathParser()
@@ -84,7 +86,9 @@ class Template:
                 elif key.startswith(self.param_prefix) and key[1:] in self.params:
                     value = self.params.get(key[1:])
                 elif key.startswith(self.function_prefix):
+                    # 如果是函数的关联函数的话
                     name_args = self.split_func(key, self.function_prefix)
+                    # 将函数名和变量列在list中
                     name_args = [_ for _ in map(self.replace_param, name_args)]
                     value = self.func_lib(name_args[0], *name_args[1:])
                 else:
@@ -164,6 +168,7 @@ class Template:
             return param
 
     def split_func(self, statement: str, flag: 'str' = '@'):
+        # 将函数变量提取出来，如{{@asdb_asdkjh(a,awekjh)}}
         pattern = flag + r'([_a-zA-Z][_a-zA-Z0-9]*)(\(.*?\))?'
         m = re.match(pattern, statement)
         result = list()
