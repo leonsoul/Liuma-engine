@@ -138,3 +138,32 @@ class LiuMaProvider(BaseProvider):
 
     def array_dumps(self, tar):
         return json.dumps(tar)
+
+
+class CommonFunction:
+    # 上传文件
+    @staticmethod
+    def oss_upload_file(res_data, send_body, oss_type, oss_dir, file_seat):
+        from tools.funclib.provider.OSSFastUploadUtil import oss_util
+        from lm.lm_config import AlltuuConfig
+        import os
+        config = AlltuuConfig()
+        oss = None
+
+        for filename, value in send_body['files'].items():
+            with open(filename, 'wb') as f:
+                f.write(value)
+            if oss_type == '4':
+                oss = oss_util(config.KeyId, config.KeySecret, None)
+                KB_size, uuid_name, fileName, Suffix = oss.upload_callback(res_data['key'], file_seat, filename,
+                                                                           res_data['callback'])
+            else:
+                oss = oss_util(res_data['AccessKeyId'], res_data['AccessKeySecret'], res_data['SecurityToken'])
+                KB_size, uuid_name, fileName, Suffix = oss.upload_Url_selection(oss_dir, file_seat, filename)
+
+            os.remove(filename)
+
+            if KB_size is not None:
+                return KB_size, uuid_name, fileName, Suffix
+            else:
+                raise Exception('文件上传失败')

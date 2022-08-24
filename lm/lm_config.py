@@ -56,3 +56,14 @@ class LMConfig(object):
             self.browser_path = reader.data("WebDriver", "path")
         else:
             self.browser_path = os.path.join(BROWSER_PATH, reader.data("WebDriver", "path"))
+
+
+class AlltuuConfig(object):
+    """alltuu相关配置文件"""
+
+    def __init__(self, path=CONFIG_PATH):
+        reader = IniReader(path)
+        self.endpoint = reader.data('Oss', 'Endpoint')
+        self.bucket = reader.data('Oss', 'bucket')
+        self.KeyId = reader.data('Oss', 'KeyId')
+        self.KeySecret = reader.data('Oss', 'KeySecret')

@@ -177,6 +177,9 @@ class ApiTestStep:
         names["res_data"] = self.response_content
         names["res_cookies"] = self.response_cookies
         names["res_bytes"] = self.response_content_bytes
+        names["send_body"] = self.collector.others
+        # 将通用函数导入进来
+        from tools.funclib.provider.lm_provider import CommonFunction
         exec(code)
 
     def save_response(self, res):
@@ -292,5 +295,15 @@ class AssertRelationError(Exception):
 
 
 if __name__ == '__main__':
-    import datetime
-    datetime.timedelta(hours=8)
+    from tools.funclib.provider.OSSFastUploadUtil import oss_util
+
+    d = {
+        "AccessKeyId": "STS.NSvS7b8uqJs8aZFP7fUsAAf2P",
+        "AccessKeySecret": "43c2vWaBfLBUK5NDm6uXzpAQ9NLatJiiEiziRszAqr8t",
+        "SecurityToken": "CAIS0QJ1q6Ft5B2yfSjIr5DDGI3W1apQ/bHTY3z3tDczWfxtrqOZsjz2IHhJe3VuAuoZv/01nm1T7PkelrNuUJJfZECeNpMtv89gqF3/OtOc6pDtvOJe1MUHnJ9Tz0apsvXJasDVEfkiE5XEMiI9/00e6L/+cirYAT7BGJaViJlhQ80KVw2jF1RvD8tXIQ0Q3q1/MmDKZ86wLjnggGfbECgNvRFn20xy9YO1wMCX9mDm7jvAx/QSup76L7W9csBoJ+0fadqu2/FsfaezjEwK4hNRpqBtl/4Gq3WVt9WZH0RMpg6aNPDd/dAqIxJ4erUnXLJBtL/BrtBC4LeLytWsjFRvRbgJAnuDHtH+npCaRbP2bowDGOylayiX4LemLYLotg4oW3UfOT5RdsApQn0KUkRxFW2EcfX4qQmQOFr4EffZysMtzYEw0k3s+tOGN/4CnUQJBZpyGoABFtTEFRWD7cF7Ba3SKxi3vYIG3viIU3L8DQgECWcdqYwfX+BVBQPhWrDGq5t/s82tR4B4q/TrL3ggiha/AgUlNh7YF0AhuEHH8ZXlpqOw6maguJw+951W1dwoRpUNkJDf20Gg/Fekrqi80748zWmtZuciDfBnvD/1Cq6HqM74QCw=",
+        "ExpireTime": "2022-08-22T10:10:09Z"
+    }
+    print(
+        oss_util(d['AccessKeyId'], d['AccessKeySecret'], d['SecurityToken']).upload_Url_selection('tmp/USER230593/', '',
+                                                                                                  '/Users/liujin/Desktop/01682a5eef271ba801215aa0a8445d.jpg@1280w_1l_0o_100sh-opq2510515.jpg')
+        )
