@@ -1,12 +1,9 @@
 **/__pycache__/
-
 .idea
-
 image
-
 log
-
 data
 *.log
-browser/**.exe
+browser
+config
 
