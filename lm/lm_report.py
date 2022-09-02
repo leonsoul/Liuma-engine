@@ -43,7 +43,7 @@ class LMReport(object):
                         break
                     else:  # start_run_index--n
                         if len(not_send_result) != 0:
-                            DebugLogger('输出日志：', str(not_send_result), file_path=log_path)
+                            DebugLogger('输出日志：'+str(not_send_result), file_path=log_path)
                             self.api.upload_result(task_id, data_type, not_send_result)
                             not_send_result.clear()
                         index = int(message.split("--")[-1])
