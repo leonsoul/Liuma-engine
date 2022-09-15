@@ -1,15 +1,12 @@
-import json
-
 import binascii
 import time
 import uuid
 from hashlib import md5
 from urllib.parse import unquote
 
-from Cryptodome.Hash import SHA256
-from Cryptodome.PublicKey import RSA
-from Cryptodome.Signature import PKCS1_v1_5
-import requests
+# from cryptodome.Hash import SHA256
+# from Cryptodome.PublicKey import RSA
+# from Cryptodome.Signature import PKCS1_v1_5
 
 # from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
@@ -154,6 +151,7 @@ class Signature:
         for i in unquote(args_map).split('&'):
             str_list.append(i.split('='))
         return dict(str_list)
+
 
 if __name__ == '__main__':
     # strl = 'name=15191333333&pwd=25d55ad283aa400af464c76d713c07ad'

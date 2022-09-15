@@ -53,7 +53,6 @@ class LMSetting(object):
         test_plan = {}
         if self.task["taskType"] != 'debug':
             file_path = self.data_pull()
-            print('file_path', file_path)
             if file_path is not None:
                 self.file_unzip(file_path)
             for collection_map in self.task["testCollectionList"]:
