@@ -18,9 +18,43 @@ from docx.document import Document
 from docx.table import _Cell, Table
 from docx.oxml.table import CT_Tbl
 from docx.oxml.text.paragraph import CT_P
+from docx.text.paragraph import Paragraph
 
-db = pymysql.connect(host='39.103.207.90', user='root', password='LEon123+')
-cur = db.cursor()
+
+mysql_config = dict(host='39.103.207.90', user='root', passwd='LEon123+')
+
+
+class openmysql():
+    def __init__(self, *args, **kwargs):
+        """
+        kwargs like host='www', user='root', passwd='123456', db='test', port=3306
+        """
+        ####将传进来的变量保存到self,不能在这个函数进行conn的创建
+        ####因为初始化变量后不一定会执行变量的__exit__,容易造成僵尸连接
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    def __enter__(self):
+        try:
+            import pymysql
+        except Exception:
+            raise Exception('pymysql must be installed at your environment')
+        self.conn = pymysql.connect(**self.__dict__)
+        self.cursor = self.conn.cursor()
+        return self
+
+    def execute(self, sql):
+        self.cursor.execute(sql)
+        result = self.cursor.fetchall()
+        return result
+    def commit(self):
+        self.conn.commit()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.cursor.close()
+        self.conn.close()
+        del self
+
 
 # 数据库中域名对应的uuid
 domain_map = {
@@ -64,10 +98,10 @@ class Api_case:
 
 # 统计数据库中的接口数量
 def statistics_case_num():
-    sql = 'select count(*) from liuma.{database};'.format(database=database)
-    cur.execute(sql)
-    data = cur.fetchall()
-    return data[0][0]
+    with openmysql(**mysql_config) as mysqlc:
+        sql = 'select count(*) from liuma.{database};'.format(database=database)
+        data = mysqlc.execute(sql)
+        return data[0][0]
 
 
 def analyze_case(tmp_case: Api_case):
@@ -130,6 +164,7 @@ def transfer_require(require):
         return True
     else:
         return False
+
 
 def interface_parameters(child, index, tmp_Api_case: Api_case):
     """处理接口参数"""
@@ -202,7 +237,7 @@ def interface_details(index, tmp_Api_case):
 
 def write_database(case):
     """将数据写入数据库"""
-    try:
+    with openmysql(**mysql_config) as mysqlc:
         count = 10000 + int(statistics_case_num())
         sql = "insert into liuma.{database} values ('{uuid}',{count},'{name}','p1','0a68f47a-5606-4410-8984-44a4ccccdb7e','50452e45-0ef5-11ed-b420-00163e0ae5fc','{method}','{path}','{protocol}','{domain_sign}','{description}','[]','{body}','[]','[]','py','py',{time},{time},'Normal')" \
             .format(uuid=str(uuid.uuid1()), name=case.name, method=case.request_method, path=case.url,
@@ -211,13 +246,9 @@ def write_database(case):
                     time=int(time.time() * 1000), body=case.body, count=count, database=database)
         count += 1
         # 执行sql语句
-        cur.execute(sql)
+        mysqlc.execute(sql)
         # 提交到数据库执行
-        db.commit()
-    except:
-        # Rollback in case there is any error
-        db.rollback()
-        raise
+        mysqlc.commit()
 
 
 # 开始执行
