@@ -48,7 +48,7 @@ class WebTestCase:
                 raise RuntimeError("无法找到已启动的浏览器进程 请检查用例开关浏览器配置")
         self.template = Template(self.context, self.functions, self.params)
         self.parser = JsonPathParser()
-        self.comp = re.compile(r"\{\{.*?\}\}")
+        self.comp = re.compile(r"\{\{.*?}}")
         self.skip_opts = list()
 
     def execute(self):

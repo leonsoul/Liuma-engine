@@ -36,7 +36,6 @@ class ApiTestStep:
         self.assert_result = None
 
     def execute(self):
-        """测试执行"""
         try:
             self.test.debugLog('[{}][{}]接口执行开始'.format(self.collector.apiId, self.collector.apiName))
             request_log = '【请求信息】:<br>'
@@ -125,32 +124,9 @@ class ApiTestStep:
                 sleep(int(self.collector.controller["sleepAfterRun"]))
                 self.test.debugLog("请求后等待%sS" % int(self.collector.controller["sleepAfterRun"]))
 
-    def looper_controller(self, case, api_list, index):
-        """循环控制器"""
-        if "type" in self.collector.looper and self.collector.looper["type"] == "WHILE":
-            # while循环 且兼容之前只有for循环
-            loop_start_time = datetime.datetime.now()
-            while self.collector.looper["timeout"] == 0 or (datetime.datetime.now() - loop_start_time).seconds * 1000 \
-                    < self.collector.looper["timeout"]:  # timeout为0时可能会死循环 慎重选择
-                # 渲染循环控制控制器 每次循环都需要渲染
-                _looper = case._render_looper(self.collector.looper)
-                result, _ = LMAssert(_looper['assertion'], _looper['target'], _looper['expect']).compare()
-                if not result:
-                    break
-                _api_list = api_list[index - 1: (index + _looper["num"] - 1)]
-                case._loop_execute(_api_list, api_list[index]["apiId"])
-        else:
-            # 渲染循环控制控制器 for只需渲染一次
-            _looper = case._render_looper(self.collector.looper)
-            for i in range(_looper["times"]):  # 本次循环次数
-                self.context[_looper["indexName"]] = i + 1  # 给循环索引赋值第几次循环 母循环和子循环的索引名不应一样
-                _api_list = api_list[index - 1: (index + _looper["num"] - 1)]
-                case._loop_execute(_api_list, api_list[index]["apiId"])
-
-    def condition_controller(self, case):
-        """条件控制器"""
-        _conditions = case._render_conditions(self.collector.conditions)
-        for condition in _conditions:
+    def judge_condition(self):
+        conditions = json.loads(self.collector.controller["whetherExec"])
+        for condition in conditions:
             try:
                 result, msg = LMAssert(condition['assertion'], condition['target'], condition['expect']).compare()
                 if not result:
@@ -159,6 +135,20 @@ class ApiTestStep:
                 return str(e)
         else:
             return True
+
+    def loop_exec(self):
+        loop = json.loads(self.collector.controller["loopExec"])
+        print(loop)
+        _loop_index_name = loop["indexName"]
+        try:
+            _loop_times = int(loop["times"])
+        except:
+            _loop_times = 1
+        try:
+            _loop_num = int(loop["num"])
+        except:
+            _loop_num = 1
+        return _loop_index_name, _loop_times, _loop_num
 
     def exec_script(self, code):
         """执行前后置脚本"""
