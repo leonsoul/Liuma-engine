@@ -299,5 +299,4 @@ def run(mysqlc):
 
 if __name__ == '__main__':
     with openmysql(**mysql_config) as mysqlc:
-        # run(mysqlc)
-        print(mysqlc.execute('select * from liuma.api limit 10'))
+        run(mysqlc)
