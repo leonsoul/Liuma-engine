@@ -40,7 +40,6 @@ class openmysql():
             import pymysql
         except Exception:
             raise Exception('pymysql must be installed at your environment')
-        print('开始链接拉')
         self.conn = pymysql.connect(**self.mysql_config)
         self.cursor = self.conn.cursor()
         return self
@@ -57,8 +56,7 @@ class openmysql():
 
     def ping(self):
         try:
-            # self.conn.ping()
-            raise
+            self.conn.ping()
         except:
             self.__enter__()
 
