@@ -20,9 +20,11 @@ from docx.oxml.table import CT_Tbl
 from docx.oxml.text.paragraph import CT_P
 from docx.text.paragraph import Paragraph
 
-
-mysql_config = dict(host='39.103.207.90', user='root', passwd='LEon123+')
-
+mysql_config = dict(host='39.103.207.90', user='cxy', passwd='Chen666+')
+file = docx.Document('设置服务器.docx')  # 导出的api文件
+database = 'api_copy'  # 需要写入的数据库，api为真实数据库，api_copy为测试数据库
+pause_index = 0  # 从什么地方开始执行
+raise_index = sys.maxsize
 
 class openmysql():
     def __init__(self, *args, **kwargs):
@@ -31,24 +33,34 @@ class openmysql():
         """
         ####将传进来的变量保存到self,不能在这个函数进行conn的创建
         ####因为初始化变量后不一定会执行变量的__exit__,容易造成僵尸连接
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+        self.mysql_config = kwargs
 
     def __enter__(self):
         try:
             import pymysql
         except Exception:
             raise Exception('pymysql must be installed at your environment')
-        self.conn = pymysql.connect(**self.__dict__)
+        print('开始链接拉')
+        self.conn = pymysql.connect(**self.mysql_config)
         self.cursor = self.conn.cursor()
         return self
 
     def execute(self, sql):
+        self.ping()
         self.cursor.execute(sql)
         result = self.cursor.fetchall()
         return result
+
     def commit(self):
+        self.ping()
         self.conn.commit()
+
+    def ping(self):
+        try:
+            # self.conn.ping()
+            raise
+        except:
+            self.__enter__()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.cursor.close()
@@ -72,10 +84,7 @@ domain_map = {
     'k': 'cf635e39-3231-4edb-bb12-e6eee48ff538'
 }
 
-file = docx.Document('设置服务器.docx')  # 导出的api文件
-database = 'api'  # 需要写入的数据库，api为真实数据库，api_copy为测试数据库
-pause_index = 0  # 从什么地方开始执行
-raise_index = sys.maxsize
+
 
 
 # 接口类
@@ -97,11 +106,10 @@ class Api_case:
 
 
 # 统计数据库中的接口数量
-def statistics_case_num():
-    with openmysql(**mysql_config) as mysqlc:
-        sql = 'select count(*) from liuma.{database};'.format(database=database)
-        data = mysqlc.execute(sql)
-        return data[0][0]
+def statistics_case_num(mysqlc):
+    sql = 'select count(*) from liuma.{database};'.format(database=database)
+    data = mysqlc.execute(sql)
+    return data[0][0]
 
 
 def analyze_case(tmp_case: Api_case):
@@ -230,29 +238,28 @@ def interface_details(index, tmp_Api_case):
             tmp_Api_case.request_method = file.paragraphs[index + 1].text
         elif file.paragraphs[index].text in ('请求域名', '域名'):
             tmp_Api_case.domain = file.paragraphs[index + 1].text
-        elif file.paragraphs[index].text in ('成功返回示例', '返回示例', '成功返回示例的参数说明'):
+        elif file.paragraphs[index].text in ('成功返回示例', '返回示例'):
             return False
     return True
 
 
-def write_database(case):
+def write_database(case, mysqlc):
     """将数据写入数据库"""
-    with openmysql(**mysql_config) as mysqlc:
-        count = 10000 + int(statistics_case_num())
-        sql = "insert into liuma.{database} values ('{uuid}',{count},'{name}','p1','0a68f47a-5606-4410-8984-44a4ccccdb7e','50452e45-0ef5-11ed-b420-00163e0ae5fc','{method}','{path}','{protocol}','{domain_sign}','{description}','[]','{body}','[]','[]','py','py',{time},{time},'Normal')" \
-            .format(uuid=str(uuid.uuid1()), name=case.name, method=case.request_method, path=case.url,
-                    description=case.description, protocol=case.protocol,
-                    domain_sign=domain_map[re.sub('[^a-zA-Z.0-9]', '', case.domain)],
-                    time=int(time.time() * 1000), body=case.body, count=count, database=database)
-        count += 1
-        # 执行sql语句
-        mysqlc.execute(sql)
-        # 提交到数据库执行
-        mysqlc.commit()
+    count = 10000 + int(statistics_case_num(mysqlc))
+    sql = "insert into liuma.{database} values ('{uuid}',{count},'{name}','p1','0a68f47a-5606-4410-8984-44a4ccccdb7e','50452e45-0ef5-11ed-b420-00163e0ae5fc','{method}','{path}','{protocol}','{domain_sign}','{description}','[]','{body}','[]','[]','py','py',{time},{time},'Normal')" \
+        .format(uuid=str(uuid.uuid1()), name=case.name, method=case.request_method, path=case.url,
+                description=case.description, protocol=case.protocol,
+                domain_sign=domain_map[re.sub('[^a-zA-Z.0-9]', '', case.domain)],
+                time=int(time.time() * 1000), body=case.body, count=count, database=database)
+    count += 1
+    # 执行sql语句
+    mysqlc.execute(sql)
+    # 提交到数据库执行
+    mysqlc.commit()
 
 
 # 开始执行
-def run():
+def run(mysqlc):
     if isinstance(file, Document):
         parent_elm = file.element.body
     elif isinstance(file, _Cell):
@@ -285,7 +292,7 @@ def run():
             case = analyze_case(tmp_Api_case)
             # 写入数据库
             print(index, case.name)
-            write_database(case)
+            write_database(case, mysqlc)
 
             # 一个接口结束，初始化数据
             tmp_Api_case = Api_case()
@@ -293,4 +300,6 @@ def run():
 
 
 if __name__ == '__main__':
-    run()
+    with openmysql(**mysql_config) as mysqlc:
+        # run(mysqlc)
+        print(mysqlc.execute('select * from liuma.api limit 10'))
