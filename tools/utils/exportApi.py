@@ -26,13 +26,14 @@ database = 'api_copy'  # 需要写入的数据库，api为真实数据库，api_
 pause_index = 0  # 从什么地方开始执行
 raise_index = sys.maxsize
 
-class openmysql():
+
+class OpenMysql:
     def __init__(self, *args, **kwargs):
         """
         kwargs like host='www', user='root', passwd='123456', db='test', port=3306
         """
-        ####将传进来的变量保存到self,不能在这个函数进行conn的创建
-        ####因为初始化变量后不一定会执行变量的__exit__,容易造成僵尸连接
+        # 将传进来的变量保存到self,不能在这个函数进行conn的创建
+        # 因为初始化变量后不一定会执行变量的__exit__,容易造成僵尸连接
         self.mysql_config = kwargs
 
     def __enter__(self):
@@ -81,8 +82,6 @@ domain_map = {
     'v4c': '09af25ce-9134-4012-8287-9ed4840f1b6f',
     'k': 'cf635e39-3231-4edb-bb12-e6eee48ff538'
 }
-
-
 
 
 # 接口类
@@ -298,5 +297,5 @@ def run(mysqlc):
 
 
 if __name__ == '__main__':
-    with openmysql(**mysql_config) as mysqlc:
+    with OpenMysql(**mysql_config) as mysqlc:
         run(mysqlc)
