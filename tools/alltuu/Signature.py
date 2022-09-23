@@ -1,3 +1,4 @@
+import hashlib
 import json
 
 import binascii
@@ -10,6 +11,8 @@ from Cryptodome.Hash import SHA256
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Signature import PKCS1_v1_5
 import requests
+
+from lm.lm_config import AlltuuConfig
 
 # from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
@@ -42,15 +45,19 @@ class Signature:
 
     # sign_url_v4 返回V4签名
     @staticmethod
-    def sign_url_v4(token, args_map, limit=False):
+    def sign_url_v4(token, args_map, limit=False, no_sign_date=None):
         """
         sign_url_v4 返回V4签名
         @param token: 用户token
         @param args_map: 请求参数
         @param limit: 是否限流
+        @param no_sign_date: 不参与签名的参数
         @return:拼接接口请求体, 加密参数
         """
 
+        if no_sign_date is not None:
+            for del_item in no_sign_date:
+                del args_map[del_item]
         timestamp = str(int(time.time() * 1000))  # 请求发起时间戳
         std_args_map = {"from": source, "timestamp": timestamp, "token": token, "version": api_v}
         # 把标准的四个参数组成的map和非标准参数args_map合并成一个map, 用来进行签名
@@ -155,6 +162,17 @@ class Signature:
             str_list.append(i.split('='))
         return dict(str_list)
 
+    @staticmethod
+    def sign_url_v4c(path, args_map):
+        # 直播相册加密
+        file_path = '/'.join([path, Signature().concatenating_url(args_map)])
+        alltuu_config = AlltuuConfig()
+        time_stamp = hex(args_map['t'] // 1000)[2:]
+        hl = hashlib.md5()
+        hl.update((alltuu_config.CDNKey + '/' + file_path + time_stamp).encode(encoding='utf-8'))
+        return '/{sign}/{time_stamp}/{file}'.format(sign=hl.hexdigest(), time_stamp=time_stamp, file=file_path)
+
+
 if __name__ == '__main__':
     # strl = 'name=15191333333&pwd=25d55ad283aa400af464c76d713c07ad'
     # arg = {}
@@ -163,4 +181,4 @@ if __name__ == '__main__':
     #     str_list.append(i.split('='))
     # dict_map = dict(str_list)
     # print(dict_map)
-    print(Signature.sign_url_v4('80d27bf3a922d452af17105f3da7a8fe', 'albumIdN=2143077302'))
+    print(Signature.sign_url_v4c('rest/v4c/fa', {"a": '123', 't': 123412312312}))

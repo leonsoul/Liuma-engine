@@ -66,7 +66,7 @@ class LMConfig(object):
                 self.browser_path = os.path.join(BROWSER_PATH, reader.data("WebDriver", "linux-path"))
             else:
                 self.browser_path = os.path.join(BROWSER_PATH, reader.data("WebDriver", "path"))
-        print(self.browser_opt, self.browser_path)
+
 
 
 class AlltuuConfig(object):
@@ -78,3 +78,4 @@ class AlltuuConfig(object):
         self.bucket = reader.data('Oss', 'bucket')
         self.KeyId = reader.data('Oss', 'KeyId')
         self.KeySecret = reader.data('Oss', 'KeySecret')
+        self.CDNKey = reader.data('CDN', 'private-key')

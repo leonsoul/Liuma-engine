@@ -21,6 +21,7 @@ class ApiRequestCollector:
         self.conditions = []
         self.assertions = []
         self.relations = []
+        self.private = {}  # 之后自定义的参数值尽可能都塞这个里面
 
     def collect_flag(self, api_data, arg_name):
         if arg_name not in api_data or api_data[arg_name] is None:
@@ -148,6 +149,7 @@ class ApiRequestCollector:
         if body is None:
             return
         self.body_type = body["type"]
+
         if body["type"] == "json":
             # cxy新增 如果请求体是json格式的话，那么请求头中的headers为application/json;charset=UTF-8
             self.others['headers'].update({'Content-Type': 'application/json;charset=UTF-8'})
@@ -158,7 +160,8 @@ class ApiRequestCollector:
         elif body["type"] in ("form-urlencoded", "form-data"):
             # cxy新增 如果请求体是json格式的话，那么请求头中的headers为application/x-www-form-urlencoded;charset=UTF-8
             self.others['headers'].update({'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'})
-            body_data, body_file = handle_form_data(body["form"])
+            body_data, body_file, no_sign_data = handle_form_data(body["form"]) # no_sign_data 不参与签名的参数
+            self.private["no_sign_data"] = no_sign_data
             if len(body_data) > 0:
                 DebugLogger('collect_body:{}'.format(str(body_data)))
                 self.others["data"] = body_data

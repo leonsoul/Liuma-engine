@@ -54,16 +54,16 @@ class ApiTestStep:
                         request_log += '{}: {}<br>'.format(c_key, log_msg(value))
             # 如果是x-www-form-urlencoded 格式，字段中有使用list或dict会报错，但是我们在系统中都会使用字符串代替，所以这段代码先注释掉了
             self.test.debugLog(request_log[:-4])
-            if self.collector.body_type == "form-urlencoded" and 'data' in self.collector.others:
-                self.collector.others['data'] = urlencode(self.collector.others['data'])
-            if self.collector.body_type in ("text", "xml", "html") and 'data' in self.collector.others:
-                self.collector.others['data'] = self.collector.others['data'].encode("utf-8")
+            # if self.collector.body_type == "form-urlencoded" and 'data' in self.collector.others:
+            #     self.collector.others['data'] = urlencode(self.collector.others['data'])
+            # if self.collector.body_type in ("text", "xml", "html") and 'data' in self.collector.others:
+            #     self.collector.others['data'] = self.collector.others['data'].encode("utf-8")
             if 'files' in self.collector.others and self.collector.others['files'] is not None:
                 self.pop_content_type()
             url = url_join(self.collector.url, self.collector.path)
 
             # 接口前置处理加密 --alltuu
-            if self.collector.controller['encryption'].lower() == "true":
+            if self.collector.controller['encryption'].lower() == "setting":
                 args_map = {}
                 # 这里的签名有些问题
                 if self.collector.others['params'] is not None:
@@ -76,16 +76,19 @@ class ApiTestStep:
                     # else:
                     args_map.update(self.collector.others['data'])
                 # 只是简单的加密
-                signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'], args_map)
+                signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'], args_map, no_sign_date=self.collector.private['no_sign_data'])
                 url = url + '/' + 'v' + signature_string
 
-            if self.collector.controller['encryption'].lower() == "neibujiami":
+            elif self.collector.controller['encryption'].lower() == "crm":
                 signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'],
-                                                                      self.collector.others['data'])
+                                                                      self.collector.others['data'], no_sign_date=self.collector.private['no_sign_data'])
                 self.collector.others['data'].updata({signature: signature})
-            elif self.collector.controller['encryption'].lower() == "qianmianbujiami":
-                pass
-
+            elif self.collector.controller['encryption'].lower() == "live":
+                args_map = {}
+                if self.collector.others['params'] is not None:
+                    args_map.update(self.collector.others['params'])
+                    # 对url进行加密
+                    url = self.collector.url + Signature().sign_url_v4c(self.collector.path, args_map)
             if int(self.collector.controller["sleepBeforeRun"]) > 0:
                 sleep(int(self.collector.controller["sleepBeforeRun"]))
                 self.test.debugLog("请求前等待%sS" % int(self.collector.controller["sleepBeforeRun"]))
@@ -309,3 +312,22 @@ if __name__ == '__main__':
         oss_util(d['AccessKeyId'], d['AccessKeySecret'], d['SecurityToken']).upload_Url_selection('tmp/USER230593/', '',
                                                                                                   '/Users/liujin/Desktop/01682a5eef271ba801215aa0a8445d.jpg@1280w_1l_0o_100sh-opq2510515.jpg')
         )
+    # import datetime
+    # import hashlib
+    # key = 'CSDtMH20ItRxAfEMauZuyLuA35Dd72V8'
+    # time = int(datetime.datetime.now().timestamp())*1000
+    # time_stamp = hex(int(time/1000))[2:]
+    # # time_stamp = int('632c362a',16)
+    # # print(time_stamp)
+    # # print(1663835730 - 3600*8)
+    # # print(time_stamp)
+    # file = 'rest/v4c/fa/a2143115342/t{utctime}'.format(utctime=time)
+    # hl = hashlib.md5()
+    # str = key + '/' + file + time_stamp
+    # print(str)
+    # hl.update(str.encode(encoding='utf-8'))
+    #
+    # m = hl.hexdigest()
+    # # # str = m.update(key+'/'+file+time_stamp)
+    # print(m)
+    # print('https://v4c.guituu.com/{sign}/{time_stamp}/{file}'.format(sign=m, time_stamp=time_stamp,file=file))
