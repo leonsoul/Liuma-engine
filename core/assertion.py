@@ -20,7 +20,7 @@ class LMAssert:
                 assertpy.assert_that(self.actual_result).is_equal_to(self.expected_result)
             elif self.comparator in ["equalsList", "数组相等"]:  # 列表相同，包括列表顺序也相同
                 assFailMsg = '实际值({})与预期值({}) 数组相等，条件为否：'.format(self.actual_result, self.expected_result)
-                assertpy.assert_that(LMAssert.str2list(self.actual_result)).is_equal_to(LMAssert.str2list(self.expected_result))
+                assertpy.assert_that(LMAssert.list2str(self.actual_result)).is_equal_to(LMAssert.list2str(self.expected_result))
             elif self.comparator in ["equalsDict", "对象相等"]:  # 字典相同
                 assFailMsg = '实际值({})与预期值({}) 对象相等，条件为否：'.format(self.actual_result, self.expected_result)
                 assertpy.assert_that(LMAssert.str2dict(self.actual_result)).is_equal_to(LMAssert.str2dict(self.expected_result))
@@ -35,7 +35,7 @@ class LMAssert:
                 assertpy.assert_that(self.actual_result).is_not_equal_to(self.expected_result)
             elif self.comparator in ["contains", "包含"]:  # 字符串包含该字符
                 assFailMsg = '实际值({}) 包含 预期值({})，条件为否：'.format(self.actual_result, self.expected_result)
-                assertpy.assert_that(LMAssert.to_str(self.actual_result)).contains((self.expected_result))
+                assertpy.assert_that(LMAssert.to_str(self.actual_result)).contains(self.expected_result)
             elif self.comparator in ["notContains", "does no contains", "不包含"]:  # 字符串不包含该字符
                 assFailMsg = '实际值({}) 不包含 预期值({})，条件为否：'.format(self.actual_result, self.expected_result)
                 assertpy.assert_that(self.actual_result).does_not_contain(*LMAssert.str2list(self.expected_result))
@@ -122,13 +122,13 @@ class LMAssert:
             elif self.comparator in ["isCloseTo", " 接近于"]:  # 接近于
                 assFailMsg = '实际值({}) 接近于 预期值({})，条件为否：'.format(self.actual_result, self.expected_result)
                 assertpy.assert_that(LMAssert.str2num(self.actual_result)).is_close_to(*LMAssert.str2list(self.expected_result))
-            elif self.comparator in ["listLenEqual","列表长度相等"]:  # 列表长度相等
+            elif self.comparator in ["listLenEqual", "列表长度相等"]:  # 列表长度相等
                 assFailMsg = '实际值({}) 列表长度相等 预期值({})，条件为否：'.format(self.actual_result, self.expected_result)
                 assertpy.assert_that(LMAssert.list_len(self.actual_result)).is_equal_to(LMAssert.str2num(self.expected_result))
-            elif self.comparator in ["listLenGreaterThan","列表长度大于"]:  # 列表长度大于
+            elif self.comparator in ["listLenGreaterThan", "列表长度大于"]:  # 列表长度大于
                 assFailMsg = '实际值({}) 列表长度大于 预期值({})，条件为否：'.format(self.actual_result, self.expected_result)
                 assertpy.assert_that(LMAssert.list_len(self.actual_result)).is_greater_than(LMAssert.str2num(self.expected_result))
-            elif self.comparator in ["listLenLessThan","列表长度小于"]:  # 列表长度小于
+            elif self.comparator in ["listLenLessThan", "列表长度小于"]:  # 列表长度小于
                 assFailMsg = '实际值({}) 列表长度小于 预期值({})，条件为否：'.format(self.actual_result, self.expected_result)
                 assertpy.assert_that(LMAssert.list_len(self.actual_result)).is_less_than_or_equal_to(LMAssert.str2num(self.expected_result))
             else:
@@ -178,16 +178,25 @@ class LMAssert:
         if value.startswith('[') and value.endswith(']'):
             for item in value[1:-1].split(','):
                 item_strip = item.strip()
-                if re.fullmatch(r'-?[0-9]*\.?[0-9]*', item_strip) is not None:
+                # 如果str全部是数字，就转成int或float形式
+                if re.fullmatch(r'^-?[0-9]*\.?[0-9]*$', item_strip) is not None:
                     if '.' in item_strip:
                         value_list.append(float(item_strip))
                     else:
                         value_list.append(int(item_strip))
                 else:  # 字符串
-                    value_list.append(item_strip[1:-1])
+                    value_list.append(item_strip)
             return value_list
         else:
             return value
+
+    @staticmethod
+    def list2str(value):
+        """利用json.dumps将list转成str格式，格式形式与java的JSON.STRINGIFY一致"""
+        import json
+        if not isinstance(value, list):
+            return value
+        return json.dumps(value, separators=(',', ':'))
 
     @staticmethod
     def str2dict(value):
@@ -195,7 +204,7 @@ class LMAssert:
             return value
         if value is None or len(value) == 0:
             return None
-        value_dict={}
+        value_dict = {}
         if value.startswith('{') and value.endswith('}'):
             for item in value[1:-1].split(','):
                 value_dict = ast.literal_eval(value)
@@ -216,7 +225,7 @@ class LMAssert:
 
     @staticmethod
     def list_len(value):
-        value2list=LMAssert.str2list(value)
+        value2list = LMAssert.str2list(value)
         if type(value2list) != list:
             raise AssertionTypeNotExist('传入实际值({}) 不是列表格式'.format(value))
         else:
@@ -225,3 +234,7 @@ class LMAssert:
 
 class AssertionTypeNotExist(Exception):
     """断言类型错误"""
+
+
+if __name__ == '__main__':
+    print(LMAssert.list2str([{'a': '123'}]))

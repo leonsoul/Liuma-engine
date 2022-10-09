@@ -36,6 +36,7 @@ class ApiTestStep:
         self.assert_result = None
 
     def execute(self):
+        """测试执行"""
         try:
             self.test.debugLog('[{}][{}]接口执行开始'.format(self.collector.apiId, self.collector.apiName))
             request_log = '【请求信息】:<br>'
@@ -52,15 +53,17 @@ class ApiTestStep:
                     else:
                         request_log += '{}: {}<br>'.format(c_key, log_msg(value))
             # 如果是x-www-form-urlencoded 格式，字段中有使用list或dict会报错，但是我们在系统中都会使用字符串代替，所以这段代码先注释掉了
+            self.test.debugLog(request_log[:-4])
             # if self.collector.body_type == "form-urlencoded" and 'data' in self.collector.others:
             #     self.collector.others['data'] = urlencode(self.collector.others['data'])
-
+            # if self.collector.body_type in ("text", "xml", "html") and 'data' in self.collector.others:
+            #     self.collector.others['data'] = self.collector.others['data'].encode("utf-8")
             if 'files' in self.collector.others and self.collector.others['files'] is not None:
                 self.pop_content_type()
             url = url_join(self.collector.url, self.collector.path)
 
             # 接口前置处理加密 --alltuu
-            if self.collector.controller['encryption'].lower() == "true":
+            if self.collector.controller['encryption'].lower() == "setting":
                 args_map = {}
                 # 这里的签名有些问题
                 if self.collector.others['params'] is not None:
@@ -73,16 +76,19 @@ class ApiTestStep:
                     # else:
                     args_map.update(self.collector.others['data'])
                 # 只是简单的加密
-                signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'], args_map)
+                signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'], args_map, no_sign_date=self.collector.private['no_sign_data'])
                 url = url + '/' + 'v' + signature_string
 
-            if self.collector.controller['encryption'].lower() == "neibujiami":
+            elif self.collector.controller['encryption'].lower() == "crm":
                 signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'],
-                                                                      self.collector.others['data'])
+                                                                      self.collector.others['data'], no_sign_date=self.collector.private['no_sign_data'])
                 self.collector.others['data'].updata({signature: signature})
-            elif self.collector.controller['encryption'].lower() == "qianmianbujiami":
-                pass
-
+            elif self.collector.controller['encryption'].lower() == "live":
+                args_map = {}
+                if self.collector.others['params'] is not None:
+                    args_map.update(self.collector.others['params'])
+                    # 对url进行加密
+                    url = self.collector.url + Signature().sign_url_v4c(self.collector.path, args_map)
             if int(self.collector.controller["sleepBeforeRun"]) > 0:
                 sleep(int(self.collector.controller["sleepBeforeRun"]))
                 self.test.debugLog("请求前等待%sS" % int(self.collector.controller["sleepBeforeRun"]))
@@ -124,9 +130,32 @@ class ApiTestStep:
                 sleep(int(self.collector.controller["sleepAfterRun"]))
                 self.test.debugLog("请求后等待%sS" % int(self.collector.controller["sleepAfterRun"]))
 
-    def judge_condition(self):
-        conditions = json.loads(self.collector.controller["whetherExec"])
-        for condition in conditions:
+    def looper_controller(self, case, api_list, index):
+        """循环控制器"""
+        if "type" in self.collector.looper and self.collector.looper["type"] == "WHILE":
+            # while循环 且兼容之前只有for循环
+            loop_start_time = datetime.datetime.now()
+            while self.collector.looper["timeout"] == 0 or (datetime.datetime.now() - loop_start_time).seconds * 1000 \
+                    < self.collector.looper["timeout"]:     # timeout为0时可能会死循环 慎重选择
+                # 渲染循环控制控制器 每次循环都需要渲染
+                _looper = case._render_looper(self.collector.looper)
+                result, _ = LMAssert(_looper['assertion'], _looper['target'], _looper['expect']).compare()
+                if not result:
+                    break
+                _api_list = api_list[index - 1: (index + _looper["num"] - 1)]
+                case._loop_execute(_api_list, api_list[index]["apiId"])
+        else:
+            # 渲染循环控制控制器 for只需渲染一次
+            _looper = case._render_looper(self.collector.looper)
+            for i in range(_looper["times"]):  # 本次循环次数
+                self.context[_looper["indexName"]] = i + 1  # 给循环索引赋值第几次循环 母循环和子循环的索引名不应一样
+                _api_list = api_list[index - 1: (index + _looper["num"] - 1)]
+                case._loop_execute(_api_list, api_list[index]["apiId"])
+
+    def condition_controller(self, case):
+        """条件控制器"""
+        _conditions = case._render_conditions(self.collector.conditions)
+        for condition in _conditions:
             try:
                 result, msg = LMAssert(condition['assertion'], condition['target'], condition['expect']).compare()
                 if not result:
@@ -135,20 +164,6 @@ class ApiTestStep:
                 return str(e)
         else:
             return True
-
-    def loop_exec(self):
-        loop = json.loads(self.collector.controller["loopExec"])
-        print(loop)
-        _loop_index_name = loop["indexName"]
-        try:
-            _loop_times = int(loop["times"])
-        except:
-            _loop_times = 1
-        try:
-            _loop_num = int(loop["num"])
-        except:
-            _loop_num = 1
-        return _loop_index_name, _loop_times, _loop_num
 
     def exec_script(self, code):
         """执行前后置脚本"""
@@ -297,3 +312,22 @@ if __name__ == '__main__':
         oss_util(d['AccessKeyId'], d['AccessKeySecret'], d['SecurityToken']).upload_Url_selection('tmp/USER230593/', '',
                                                                                                   '/Users/liujin/Desktop/01682a5eef271ba801215aa0a8445d.jpg@1280w_1l_0o_100sh-opq2510515.jpg')
         )
+    # import datetime
+    # import hashlib
+    # key = 'CSDtMH20ItRxAfEMauZuyLuA35Dd72V8'
+    # time = int(datetime.datetime.now().timestamp())*1000
+    # time_stamp = hex(int(time/1000))[2:]
+    # # time_stamp = int('632c362a',16)
+    # # print(time_stamp)
+    # # print(1663835730 - 3600*8)
+    # # print(time_stamp)
+    # file = 'rest/v4c/fa/a2143115342/t{utctime}'.format(utctime=time)
+    # hl = hashlib.md5()
+    # str = key + '/' + file + time_stamp
+    # print(str)
+    # hl.update(str.encode(encoding='utf-8'))
+    #
+    # m = hl.hexdigest()
+    # # # str = m.update(key+'/'+file+time_stamp)
+    # print(m)
+    # print('https://v4c.guituu.com/{sign}/{time_stamp}/{file}'.format(sign=m, time_stamp=time_stamp,file=file))

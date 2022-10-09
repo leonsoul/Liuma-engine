@@ -1,11 +1,10 @@
-from .load_faker import CustomFaker
+from tools.funclib.load_faker import CustomFaker
 import time
 
 
 def get_func_lib(lm_func=None):
     faker = CustomFaker(locale='zh_cn', package='provider', lm_func=lm_func)
     CustomFaker.seed(str(time.time()))
-    # print('run', faker('创建相册的默认名称'))
     return faker
 
 

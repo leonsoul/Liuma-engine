@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 import configparser
+import platform
+import sys
 
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(BASE_PATH, "data")
@@ -56,8 +58,15 @@ class LMConfig(object):
         if self.browser_opt == "remote" or "/" in reader.data("WebDriver", "path"):
             self.browser_path = reader.data("WebDriver", "path")
         else:
-            self.browser_path = os.path.join(BROWSER_PATH, reader.data("WebDriver", "path"))
-        print(self.browser_opt, self.browser_path)
+            if platform.system() == 'Darwin':
+                self.browser_path = os.path.join(BROWSER_PATH, reader.data("WebDriver", "path"))
+            elif platform.system() == 'Windows':
+                self.browser_path = os.path.join(BROWSER_PATH, reader.data("WebDriver", "windows-path"))
+            elif platform.system() == 'Linux':
+                self.browser_path = os.path.join(BROWSER_PATH, reader.data("WebDriver", "linux-path"))
+            else:
+                self.browser_path = os.path.join(BROWSER_PATH, reader.data("WebDriver", "path"))
+
 
 
 class AlltuuConfig(object):
@@ -69,3 +78,4 @@ class AlltuuConfig(object):
         self.bucket = reader.data('Oss', 'bucket')
         self.KeyId = reader.data('Oss', 'KeyId')
         self.KeySecret = reader.data('Oss', 'KeySecret')
+        self.CDNKey = reader.data('CDN', 'private-key')

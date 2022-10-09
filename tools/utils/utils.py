@@ -149,6 +149,7 @@ def handle_params_data(params):
 def handle_form_data(form):
     form_data = {}
     form_file = {}
+    form_no_sign_data = []
     for item in form:
         try:
             if item["type"] == "File":
@@ -170,7 +171,13 @@ def handle_form_data(form):
                 form_data[item["name"]] = item["value"]
         except:
             form_data[item["name"]] = item["value"]
-    return form_data, form_file
+        try:
+            # 如果参数不参与签名的话，就将值传到form_no_sign_data列表中，在加密处删除dict的key
+            if not item["required"]:
+                form_no_sign_data.append(item["name"])
+        except:
+            pass
+    return form_data, form_file, form_no_sign_data
 
 
 def handle_files(files):
