@@ -95,7 +95,7 @@ class Page(Operation):
     def input_text(self, element, text):
         """输入"""
         try:
-            self.find_element(element).send_keys(text)
+            self.find_element(element).clear().send_keys(text)
             self.test.debugLog("成功执行文本输入:'%s'" % text)
         except NoSuchElementException as e:
             raise e
