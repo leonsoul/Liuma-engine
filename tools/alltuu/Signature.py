@@ -1,3 +1,4 @@
+import hashlib
 import json
 
 import binascii
@@ -170,7 +171,6 @@ class Signature:
         hl = hashlib.md5()
         hl.update((alltuu_config.CDNKey + '/' + file_path + time_stamp).encode(encoding='utf-8'))
         return '/{sign}/{time_stamp}/{file}'.format(sign=hl.hexdigest(), time_stamp=time_stamp, file=file_path)
-
 
 
 if __name__ == '__main__':

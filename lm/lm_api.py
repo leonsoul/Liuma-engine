@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import base64
-import time
 import requests
+import time
 from lm.lm_config import *
 from lm.lm_log import DebugLogger, ErrorLogger
 from tools.utils import utils
