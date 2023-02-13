@@ -145,6 +145,7 @@ class ApiRequestCollector:
         self.collect_other(api_data, 'proxies', proxies_join)
 
     def collect_body(self, api_data):
+        self.private["no_sign_data"] = []
         body = api_data["body"]
         if body is None:
             return

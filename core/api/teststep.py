@@ -69,6 +69,7 @@ class ApiTestStep:
                 if self.collector.others['params'] is not None:
                     args_map.update(self.collector.others['params'])
                     url += '/' + Signature().concatenating_url(self.collector.others['params'])
+                    self.collector.others['params'] = None
                 # 有两个选择，一个是在转义之前保存一分数据，另外一种是单独解密出来
                 if 'data' in self.collector.others:
                     # if self.collector.body_type == "form-urlencoded":
@@ -108,7 +109,7 @@ class ApiTestStep:
             self.test.recordTransDuring(int((end_time - start_time).microseconds / 1000))
             self.save_response(res)
             request_log += '<br>【请求完整链接】:{}<br>'.format(url)
-            request_log += '<br>【请求参数】:{}<>'.format(self.collector.controller)
+            # request_log += '<br>【请求参数】:{}<>'.format(self.collector.controller)
             self.test.debugLog(request_log[:])
             response_log = '【响应信息】:<br>'
             response_log += '响应码: {}<br>'.format(self.status_code)
