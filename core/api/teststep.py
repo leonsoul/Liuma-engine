@@ -26,7 +26,7 @@ class ApiTestStep:
         self.session = session
         self.collector = collector
         self.context = context
-        self.params = params
+        self.params = params    # 公参
         self.test = test
         self.status_code = None
         self.response_headers = None
@@ -90,10 +90,12 @@ class ApiTestStep:
                     args_map.update(self.collector.others['params'])
                     # 对url进行加密
                     url = self.collector.url + Signature().sign_url_v4c(self.collector.path, args_map)
+            # 前置等待
             if int(self.collector.controller["sleepBeforeRun"]) > 0:
                 sleep(int(self.collector.controller["sleepBeforeRun"]))
                 self.test.debugLog("请求前等待%sS" % int(self.collector.controller["sleepBeforeRun"]))
             start_time = datetime.datetime.now()
+            # 判断是否使用session
             if self.collector.controller["useSession"].lower() == 'true' and self.collector.controller[
                 "saveSession"].lower() == "true":
                 res = self.session.request(self.collector.method, url, **self.collector.others)
@@ -106,8 +108,10 @@ class ApiTestStep:
             else:
                 res = request(self.collector.method, url, **self.collector.others)
             end_time = datetime.datetime.now()
+            # 记录结束时间、保存响应结果
             self.test.recordTransDuring(int((end_time - start_time).microseconds / 1000))
             self.save_response(res)
+            # 输出日志
             request_log += '<br>【请求完整链接】:{}<br>'.format(url)
             # request_log += '<br>【请求参数】:{}<>'.format(self.collector.controller)
             self.test.debugLog(request_log[:])
@@ -203,7 +207,7 @@ class ApiTestStep:
             self.response_content = res.text
 
     def extract_depend_params(self):
-        """关联参数"""
+        """关联取值"""
         if self.collector.relations is not None:
             for items in self.collector.relations:
                 if items['expression'].strip() == '$':

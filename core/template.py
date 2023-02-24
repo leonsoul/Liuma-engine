@@ -28,7 +28,7 @@ class Template:
         self.request_headers = None
         self.request_query = None
         self.request_body = None
-        # 读取传进来的函数，将函数用faker绑定到tools.funclib.provider.lm_provider的模块下，functions.name命名，调用时使用func_lib('name')可以调用
+        # 读取传进来的函数，将函数用faker绑定到tools.funclib.provider.lm_provider的模块下，functions.name命名，调用时使用func_lib('name')可以调用 自定义函数
         self.func_lib = get_func_lib(functions)
         self.bytes_map = dict()
         self.parser = JsonPathParser()
@@ -81,12 +81,11 @@ class Template:
                     flag = False
                 tmp = tmp[::-1]
                 key = tmp[start_length:-end_length].strip()
-                if key in self.context:
+                if key in self.context:     # 关联参数
                     value = self.context.get(key)
-                elif key.startswith(self.param_prefix) and key[1:] in self.params:
+                elif key.startswith(self.param_prefix) and key[1:] in self.params:  # 使用&来读取自定义公参|自定义参数
                     value = self.params.get(key[1:])
-                elif key.startswith(self.function_prefix):
-                    # 如果是函数的关联函数的话
+                elif key.startswith(self.function_prefix):  # 关联函数
                     name_args = self.split_func(key, self.function_prefix)
                     # 将函数名和变量列在list中
                     name_args = [_ for _ in map(self.replace_param, name_args)]

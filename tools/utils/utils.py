@@ -122,6 +122,7 @@ def handle_operation_data(data):
 
 
 def handle_params_data(params):
+    """将字符串型的params转化为对应格式的数据"""
     result = {}
     for key, item in params.items():
         data_type = item["type"]

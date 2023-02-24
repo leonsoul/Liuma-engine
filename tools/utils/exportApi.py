@@ -19,10 +19,11 @@ from docx.table import _Cell, Table
 from docx.oxml.table import CT_Tbl
 from docx.oxml.text.paragraph import CT_P
 from docx.text.paragraph import Paragraph
-
-mysql_config = dict(host='39.103.207.90', user='cxy', passwd='Chen666+')
-file = docx.Document('设置服务器.docx')  # 导出的api文件
-database = 'api_copy'  # 需要写入的数据库，api为真实数据库，api_copy为测试数据库
+file_path = '/Users/liujin/Desktop/脚本/导出接口/Piufoto.docx'
+mysql_config = dict(host='1.117.81.152', user='qatest', passwd='LEon123+')
+file = docx.Document(file_path)  # 导出的api文件
+# database = 'api_copy'  # 需要写入的数据库，api为真实数据库，api_copy为测试数据库
+database = 'api'  # 需要写入的数据库，api为真实数据库，api_copy为测试数据库
 pause_index = 0  # 从什么地方开始执行
 raise_index = sys.maxsize
 
@@ -131,6 +132,7 @@ def analyze_case(tmp_case: Api_case):
     else:
         tmp_case.domain, tmp_case.url = tmp_case.url.split('/', 1)
         tmp_case.url = '/' + tmp_case.url
+        tmp_case.url=tmp_case.url.replace(' ', '')
     tmp_case.domain = re.sub('.(?:alltuu|guituu).com', '', tmp_case.domain)
     # 将请求方式改为大写
     tmp_case.request_method = tmp_case.request_method.upper()
@@ -207,7 +209,7 @@ def interface_parameters(child, index, tmp_Api_case: Api_case):
                          "required": required
                          }
                     )
-                pass
+            return False
         except:
             print('表格找的有问题', table.cell(0, 0).text)
 
@@ -216,6 +218,8 @@ def interface_details(index, tmp_Api_case):
     """解析接口信息"""
     # print('第{index}段的内容是：{context}'.format(index=index,context=file.paragraphs[index].text))
     # 如果是标题一 todo 需要将标题一的API作为一组API分类
+    # 遇到标题二或三后开始
+    api_item_begin = False
     if file.paragraphs[index].style.name.startswith('Heading 1'):
         # file.paragraphs[index].text 从数据中找到是否一致的组，然后没有的话就写入数据库中，有的话，读取出uuid
         pass
@@ -224,7 +228,14 @@ def interface_details(index, tmp_Api_case):
             'Heading 3'):
         # 本来想在这里做一次初始化的，但是有些接口文档中，存在两个标题三，如果初始化会出问题
         # tmp_Api_case = Api_case()
-        tmp_Api_case.name = file.paragraphs[index].text
+        re_pat = '([\u4e00-\u9fa5]|[a-zA-Z]).*'
+        try:
+            tmp_Api_case.name = re.search(re_pat, file.paragraphs[index].text).group()
+        except:
+            print("Error")
+            tmp_Api_case.name = 'Normal'
+            pass
+        api_item_begin = True
         # 对数据进行处理
     elif file.paragraphs[index].style.name.startswith('Heading 5'):
         if file.paragraphs[index].text == '简要描述':
@@ -235,19 +246,20 @@ def interface_details(index, tmp_Api_case):
             tmp_Api_case.request_method = file.paragraphs[index + 1].text
         elif file.paragraphs[index].text in ('请求域名', '域名'):
             tmp_Api_case.domain = file.paragraphs[index + 1].text
-        elif file.paragraphs[index].text in ('成功返回示例', '返回示例'):
-            return False
-    return True
+        elif file.paragraphs[index].text in ('成功返回示例', '返回示例', '备注'):
+            return False, api_item_begin
+    return True, api_item_begin
 
 
 def write_database(case, mysqlc):
     """将数据写入数据库"""
     count = 10000 + int(statistics_case_num(mysqlc))
-    sql = "insert into liuma.{database} values ('{uuid}',{count},'{name}','p1','0a68f47a-5606-4410-8984-44a4ccccdb7e','50452e45-0ef5-11ed-b420-00163e0ae5fc','{method}','{path}','{protocol}','{domain_sign}','{description}','[]','{body}','[]','[]','py','py',{time},{time},'Normal')" \
+    sql = "insert into liuma.{database} (id, name, level, module_id, project_id, method, path, protocol, domain_sign, description, header, body, query, rest,  create_user, update_user, create_time, update_time, status) values " \
+          "('{uuid}', '{name}','p1','0a68f47a-5606-4410-8984-44a4ccccdb7e','50452e45-0ef5-11ed-b420-00163e0ae5fc','{method}','{path}','{protocol}','{domain_sign}','{description}','[]','{body}','[]','[]','py','py',{time},{time},'Normal')" \
         .format(uuid=str(uuid.uuid1()), name=case.name, method=case.request_method, path=case.url,
                 description=case.description, protocol=case.protocol,
                 domain_sign=domain_map[re.sub('[^a-zA-Z.0-9]', '', case.domain)],
-                time=int(time.time() * 1000), body=case.body, count=count, database=database)
+                time=int(time.time() * 1000), body=case.body, database=database)
     count += 1
     # 执行sql语句
     mysqlc.execute(sql)
@@ -266,6 +278,7 @@ def run(mysqlc):
 
     index = -1
     item_begin = True
+    api_item_begin = False
     tmp_Api_case = Api_case()
     for child in parent_elm.iterchildren():
         # 只读取100行的数据先
@@ -276,15 +289,16 @@ def run(mysqlc):
             # 如果表格是请求参数的形式，将它写进来，不然不管他
             if index < pause_index:
                 continue
-            interface_parameters(child, index, tmp_Api_case)
+            item_begin = interface_parameters(child, index, tmp_Api_case)
         elif isinstance(child, CT_P):
             # 如果是文字段落的话，进行解析
             index += 1
             if index < pause_index:
                 continue
-            item_begin = interface_details(index, tmp_Api_case)
+            item_begin, tmp_flag = interface_details(index, tmp_Api_case)
+            api_item_begin = api_item_begin or tmp_flag
         #  如果接口文档结束了，并且符合开始条件，就开始处理case数据，并写到数据库中
-        if not item_begin and index >= pause_index:
+        if not item_begin and index >= pause_index and api_item_begin:
             # 对提取出来的数据进行处理
             case = analyze_case(tmp_Api_case)
             # 写入数据库
@@ -294,6 +308,7 @@ def run(mysqlc):
             # 一个接口结束，初始化数据
             tmp_Api_case = Api_case()
             item_begin = True
+            api_item_begin = False
 
 
 if __name__ == '__main__':

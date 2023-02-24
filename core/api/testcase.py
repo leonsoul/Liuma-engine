@@ -22,8 +22,8 @@ class ApiTestCase:
         setattr(test, 'test_case_name', self.case_message['caseName'])
         setattr(test, 'test_case_desc', self.case_message['comment'])
         self.functions = self.case_message['functions']
-        self.params = handle_params_data(self.case_message['params'])
-        self.template = Template(self.context, self.functions, self.params)
+        self.params = handle_params_data(self.case_message['params'])  # 设置自定义的参数
+        self.template = Template(self.context, self.functions, self.params)  # 构建执行模版
         self.json_path_parser = JsonPathParser()
         self.comp = re.compile(r"\{\{.*?\}\}")
 

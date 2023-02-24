@@ -13,14 +13,18 @@ class LiuMaProvider(BaseProvider):
 
     @staticmethod
     def lm_custom_func(code, params):
+        """返回自定义函数方法"""
         def func(self, *args):
             def sys_return(res):
+                """定义了返回数值的函数"""
                 names["_exec_result"] = res
+
             names = locals()
             for index, value in enumerate(params):
                 names[value] = args[index]
             exec(code)
             return names["_exec_result"]
+
         return func
 
     def loadfile(self, uuid):

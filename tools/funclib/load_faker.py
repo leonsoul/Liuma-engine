@@ -24,6 +24,7 @@ class CustomFaker(Faker):
         module_list = []
         for file_name in os.listdir(module_path):
             if file_name[-2:] == "py":
+                # 列出包的相对位置
                 module_name = __package__ + "." + self.package + "." + file_name[0:-3]
                 module_list.append(module_name)
         return module_list
@@ -31,13 +32,16 @@ class CustomFaker(Faker):
     def _load_module(self):
         for name in self._read_module():
             if name not in sys.modules:
+                # 如果不是系统函数，导入进来
                 module = import_module(name)
             else:
+                # 否则重新加载系统的函数
                 module = sys.modules.get(name)
                 reload(module)
             for value in module.__dict__.values():
                 if type(value) is type and BaseProvider in value.__bases__:
                     if value.__name__ == "LiuMaProvider":
+                        # 将自定义的函数导入进来
                         self._load_lm_func(value)
                     self.add_provider(value)
 
@@ -62,5 +66,6 @@ class CustomFaker(Faker):
                     params.append(None)
                 else:
                     params.append(str)
+            # func_param中，以custom["name"]命名
             self.func_param[custom["name"]] = params
             setattr(provider, custom["name"], func)
