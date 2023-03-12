@@ -5,6 +5,7 @@ from copy import deepcopy
 import json
 
 from core.assertion import LMAssert
+from lm.lm_log import DebugLogger
 from tools.alltuu.Signature import Signature
 from tools.utils.utils import extract, ExtractValueError, url_join
 from urllib.parse import urlencode
@@ -107,6 +108,8 @@ class ApiTestStep:
                 res = session.request(self.collector.method, url, **self.collector.others)
             else:
                 res = request(self.collector.method, url, **self.collector.others)
+            DebugLogger("开始请求，请求参数为{}，请求路径为{}".format(
+                json.dumps(self.collector.others['data'], ensure_ascii=True), url))
             end_time = datetime.datetime.now()
             # 记录结束时间、保存响应结果
             self.test.recordTransDuring(int((end_time - start_time).microseconds / 1000))
@@ -293,7 +296,7 @@ def log_msg(value):
     if temp_value_len <= 15000:
         return temp_value
     else:
-        return '数据长度{}超过15000, 暂不展示'.format(temp_value_len)
+        return temp_value[:15000] + '...' + '数据长度{}超过15000, 暂不展示'.format(temp_value_len)
 
 
 class RemoveParamError(Exception):

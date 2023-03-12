@@ -31,7 +31,8 @@ class Signature:
     @staticmethod
     def open_sign_url(appKey, secretKey, args_map):
         """
-        派瞬开放文档相关接口加密
+        派瞬开放文档相关
+        接口加密
         @param appKey: 应用id
         @param secretKey: 密钥
         @param args_map: 请求参数

@@ -20,7 +20,7 @@ from docx.oxml.table import CT_Tbl
 from docx.oxml.text.paragraph import CT_P
 from docx.text.paragraph import Paragraph
 file_path = '/Users/liujin/Desktop/脚本/导出接口/Piufoto.docx'
-mysql_config = dict(host='1.117.81.152', user='qatest', passwd='LEon123+')
+mysql_config = dict(host='1.117.81.152', user='liuma', passwd='YcSewyTdBeM8SWLz')
 file = docx.Document(file_path)  # 导出的api文件
 # database = 'api_copy'  # 需要写入的数据库，api为真实数据库，api_copy为测试数据库
 database = 'api'  # 需要写入的数据库，api为真实数据库，api_copy为测试数据库
@@ -70,12 +70,12 @@ class OpenMysql:
 
 # 数据库中域名对应的uuid
 domain_map = {
-    'm': '25ab96cc-da01-4eb8-9aa3-39a0d2ba4df2',
+    'm': 'be73459f-9585-42db-8373-602255d05b97',
     'ct': '1ed6e70d-0a6c-431a-8b65-96758547c6c0',
-    'nm': '3e974ef5-ed15-461a-8fd5-82e0fd422ffa',
+    'nm': '9dcdf3ac-59e6-4ba9-b66d-612181f7d6be',
     'www': 'e28cd6a7-6e1c-40a1-a960-a1cbe717b44d',
     'am.': '60f04ac3-340c-4dba-b804-b2366a1b71e5',
-    'cs': 'e3668d2f-9a26-470f-b380-a38ed98c5fbe',
+    'cs': 'ed07c436-9cce-4317-97f6-308e967ce62b',
     'rps': 'd37a22a3-e350-4ee7-94ca-af325eed676d',
     '': '',
     'myHost': '',
@@ -149,11 +149,11 @@ def transfer_data_type(param_type):
     if param_type.upper() == 'STRING':
         return 'String'
     elif param_type.upper() == 'INT':
-        return 'Int'
+        return 'String'
     elif param_type.upper() == 'FLOAT':
-        return 'Int'
+        return 'String'
     elif param_type.upper() == 'Float':
-        return 'Int'
+        return 'String'
     elif param_type.upper() == 'BOOLEAN':
         return 'Boolean'
     elif param_type.upper() == 'JSONOBJECT':
@@ -255,7 +255,7 @@ def write_database(case, mysqlc):
     """将数据写入数据库"""
     count = 10000 + int(statistics_case_num(mysqlc))
     sql = "insert into liuma.{database} (id, name, level, module_id, project_id, method, path, protocol, domain_sign, description, header, body, query, rest,  create_user, update_user, create_time, update_time, status) values " \
-          "('{uuid}', '{name}','p1','0a68f47a-5606-4410-8984-44a4ccccdb7e','50452e45-0ef5-11ed-b420-00163e0ae5fc','{method}','{path}','{protocol}','{domain_sign}','{description}','[]','{body}','[]','[]','py','py',{time},{time},'Normal')" \
+          "('{uuid}', '{name}','p1','0e5cc7da-9e2e-4e77-adee-6dced6074464','3333f9b1-b81a-11ed-8641-52540085c262','{method}','{path}','{protocol}','{domain_sign}','{description}','[]','{body}','[]','[]','py','py',{time},{time},'Normal')" \
         .format(uuid=str(uuid.uuid1()), name=case.name, method=case.request_method, path=case.url,
                 description=case.description, protocol=case.protocol,
                 domain_sign=domain_map[re.sub('[^a-zA-Z.0-9]', '', case.domain)],
