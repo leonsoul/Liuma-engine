@@ -95,6 +95,9 @@ class ApiRequestCollector:
             api_data["controller"]["errorContinue"] = "false"  # 默认错误后不再执行
         if "encryption" not in api_data["controller"]:
             api_data["controller"]["encryption"] = "false"  # 默认不需要加密
+        else:
+            if "From" not in api_data["controller"]:
+                api_data["controller"]["From"] = None
         if "token" not in api_data["controller"]:
             api_data["controller"]["token"] = '0'
         elif api_data["controller"]['token'] == 'false':

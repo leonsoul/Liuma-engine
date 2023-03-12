@@ -23,7 +23,7 @@ MAXLINESIZE = 76  # Excluding the CRLF
 MAXBINSIZE = (MAXLINESIZE // 4) * 3
 
 #  requests  加密规则
-source = '100101'
+PC_source = '100101'
 api_v = '0'
 
 
@@ -46,7 +46,7 @@ class Signature:
 
     # sign_url_v4 返回V4签名
     @staticmethod
-    def sign_url_v4(token, args_map, limit=False, no_sign_date=None):
+    def sign_url_v4(token, args_map, source=PC_source, limit=False, no_sign_date=None):
         """
         sign_url_v4 返回V4签名
         @param token: 用户token
@@ -55,7 +55,8 @@ class Signature:
         @param no_sign_date: 不参与签名的参数
         @return:拼接接口请求体, 加密参数
         """
-
+        if source is None:
+            source = PC_source
         if no_sign_date is not None:
             for del_item in no_sign_date:
                 del args_map[del_item]
