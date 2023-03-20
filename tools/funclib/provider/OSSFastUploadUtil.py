@@ -11,11 +11,30 @@ import os
 import uuid
 import base64
 import oss2
+
+from lm.lm_config import IniReader
 from oss2 import SizedFileAdapter, determine_part_size
 from oss2.models import PartInfo
-from lm.lm_config import LMConfig, IniReader, AlltuuConfig
 
-config = AlltuuConfig()
+# from lm.lm_config import LMConfig, IniReader, AlltuuConfig
+
+# config = AlltuuConfig()
+CONFIG_PATH = '/Users/liujin/pyProject/Liuma-engine/config/config.ini'
+
+
+class AlltuuConfig(object):
+    """alltuu相关配置文件"""
+
+    def __init__(self, path=CONFIG_PATH):
+        reader = IniReader(path)
+        self.endpoint = reader.data('Oss', 'Endpoint')
+        self.bucket = reader.data('Oss', 'bucket')
+        self.KeyId = reader.data('Oss', 'KeyId')
+        self.KeySecret = reader.data('Oss', 'KeySecret')
+        self.CDNKey = reader.data('CDN', 'private-key')
+
+
+config = AlltuuConfig(CONFIG_PATH)
 
 
 class oss_util:
@@ -125,7 +144,6 @@ class oss_util:
         result = self.bucket.put_object(remoteName, image_bytes, params)
         # print(result.resp.response.content)
         return KB_size, photoId, remoteName, Suffix
-
 
     # 小文件上传
     def _up_smallfile(self, remoteName, file):
@@ -248,8 +266,6 @@ def resolve_host(host: str):
     return end_point, Bucket
 
 
-
-
 def base64_to_dict(data):
     a = base64.b64decode(data).decode('UTF-8')
     f = json.loads(a)
@@ -261,12 +277,44 @@ def file_to_base64_btyes(file):
         image_bytes = f.read()
         image_base64 = str(base64.b64decode(image_bytes))
     return image_bytes, image_base64
+
+
+class CommonFunction:
+    # 上传文件
+    @staticmethod
+    def oss_upload_file(res_data, send_body, oss_type, oss_dir, file_seat):
+        from tools.funclib.provider.OSSFastUploadUtil import oss_util
+        # from lm.lm_config import AlltuuConfig
+        import os
+
+        oss = None
+
+        for filename, value in send_body['files'].items():
+            # with open(filename, 'wb') as f:
+            #     f.write(value)
+            if oss_type == '4':
+                oss = oss_util(config.KeyId, config.KeySecret, None)
+                print(filename)
+                KB_size, uuid_name, fileName, Suffix = oss.upload_Url_selection(res_data['key'], file_seat, filename)
+            else:
+                oss = oss_util(res_data['AccessKeyId'], res_data['AccessKeySecret'], res_data['SecurityToken'])
+                KB_size, uuid_name, fileName, Suffix = oss.upload_Url_selection(oss_dir, file_seat, filename)
+
+            # os.remove(filename)
+
+            if KB_size is not None:
+                return KB_size, uuid_name, fileName, Suffix
+            else:
+                raise Exception('文件上传失败')
+
+
 #
-#
-# if __name__ == '__main__':
-#     d = {"accessid": "LTAI5tCkToV4ka9JScYJCptm", "key": "tmp/USER230593/",
-#          "policy": "eyJleHBpcmF0aW9uIjoiMjAyMi0wOC0yM1QwMzozMDozMC41MjlaIiwiY29uZGl0aW9ucyI6W1siY29udGVudC1sZW5ndGgtcmFuZ2UiLDAsNTM2ODcwOTEyMF0sWyJzdGFydHMtd2l0aCIsIiRrZXkiLCJ0bXAvVVNFUjIzMDU5My8iXV19",
-#          "signature": "4se6BkCj3RISIN1sL5yG7WdsheA=", "dir": "tmp/USER230593/", "host": "https://ssa.guituu.com",
-#          "expire": "1661225430", "bucket": "alltuu-storage-guituu",
-#          "callback": "eyJjYWxsYmFja1VybCI6ImN0Lmd1aXR1dS5jb20vcmVzdC92NC9jbG91ZC9waG90by9jb21tb24vbm90aWZ5IiwiY2FsbGJhY2tIb3N0IjoiY3QuZ3VpdHV1LmNvbSIsImNhbGxiYWNrQm9keSI6ImJ1Y2tldD0ke2J1Y2tldH0mZmlsZW5hbWU9JHtvYmplY3R9JnNpemU9JHtzaXplfSZtaW1lVHlwZT0ke21pbWVUeXBlfSZoZWlnaHQ9JHtpbWFnZUluZm8uaGVpZ2h0fSZ3aWR0aD0ke2ltYWdlSW5mby53aWR0aH0mZm9ybWF0PSR7aW1hZ2VJbmZvLmZvcm1hdH0mdXNlcklkPTIzMDU5MyZhbGJ1bUlkTj0yMTQzMDc3MzAyIiwiY2FsbGJhY2tCb2R5VHlwZSI6ImFwcGxpY2F0aW9uL3gtd3d3LWZvcm0tdXJsZW5jb2RlZCJ9"}
-#     oss_upload_file(d, 'send_body', '4', 'tmp/USER230593/', 'poster')
+
+if __name__ == '__main__':
+    send_body = {'files': {'/Users/liujin/pyProject/Liuma-engine/fileName.jpg': '/Users/liujin/pyProject/Liuma-engine/fileName.jpg'}}
+    d = {'accessid': 'LTAI5tKT2R6mXMqMp9NMdZiU', 'key': 'tmp/USER10007133/',
+         'policy': 'eyJleHBpcmF0aW9uIjoiMjAyMy0wMy0yMFQxMDoxNjo0NS4zMjdaIiwiY29uZGl0aW9ucyI6W1siY29udGVudC1sZW5ndGgtcmFuZ2UiLDAsNTM2ODcwOTEyMF0sWyJzdGFydHMtd2l0aCIsIiRrZXkiLCJ0bXAvVVNFUjEwMDA3MTMzLyJdXX0=',
+         'signature': 'XIl3aJSratJvru/CCzb1V83MOhk=', 'dir': 'tmp/USER10007133/', 'host': 'https://ssa.guituu.com',
+         'expire': '1679307405', 'bucket': 'alltuu-storage-guituu',
+         'callback': 'eyJjYWxsYmFja1VybCI6ImN0Lmd1aXR1dS5jb20vcmVzdC92NC9jbG91ZC9waG90by9jb21tb24vbm90aWZ5IiwiY2FsbGJhY2tIb3N0IjoiY3QuZ3VpdHV1LmNvbSIsImNhbGxiYWNrQm9keSI6ImJ1Y2tldD0ke2J1Y2tldH0mZmlsZW5hbWU9JHtvYmplY3R9JnNpemU9JHtzaXplfSZtaW1lVHlwZT0ke21pbWVUeXBlfSZoZWlnaHQ9JHtpbWFnZUluZm8uaGVpZ2h0fSZ3aWR0aD0ke2ltYWdlSW5mby53aWR0aH0mZm9ybWF0PSR7aW1hZ2VJbmZvLmZvcm1hdH0mdXNlcklkPTEwMDA3MTMzJmFsYnVtSWROPTUxMzM1MTI0NTciLCJjYWxsYmFja0JvZHlUeXBlIjoiYXBwbGljYXRpb24veC13d3ctZm9ybS11cmxlbmNvZGVkIn0='}
+    CommonFunction.oss_upload_file(d, send_body, '4', 'tmp/USER10007133/', 'poster')
