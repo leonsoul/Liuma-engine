@@ -168,6 +168,8 @@ def handle_form_data(form):
                 form_data[item["name"]] = int(item["value"])
             elif item["type"] == "Float":
                 form_data[item["name"]] = float(item["value"])
+            elif item["type"] == "String":
+                form_data[item["name"]] = str(item["value"])
             else:
                 form_data[item["name"]] = item["value"]
         except:

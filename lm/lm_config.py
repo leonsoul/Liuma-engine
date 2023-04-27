@@ -79,3 +79,6 @@ class AlltuuConfig(object):
         self.KeyId = reader.data('Oss', 'KeyId')
         self.KeySecret = reader.data('Oss', 'KeySecret')
         self.CDNKey = reader.data('CDN', 'private-key')
+        self.host = reader.data('Mysql', 'host')
+        self.user = reader.data('Mysql', 'user')
+        self.pwd = reader.data('Mysql', 'password')

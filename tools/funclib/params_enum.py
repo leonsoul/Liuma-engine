@@ -1,3 +1,5 @@
+
+
 PARAMS_ENUM = {
     "bothify": [str, str],
     "lexify": [str, str],
@@ -66,3 +68,8 @@ PARAMS_ENUM = {
     "map_dumps": [dict],
     "array_dumps": [list],
 }
+
+
+if __name__ == '__main__':
+    from tools.funclib.provider.RedisOpt import MRedis
+

@@ -67,7 +67,8 @@ class oss_util:
             url = self.bucket.sign_url('PUT', remoteName, 60, slash_safe=True)
             if self.bucket.put_object_with_url_from_file(url, file).status == 200:
                 return KB_size, photoId, remoteName, Suffix
-        except:
+        except Exception as e:
+            print(e)
             return None, None, None, None
 
     def upload_type_selection(self, OssDir, file_seat, file, photoId=None):
@@ -191,25 +192,23 @@ class oss_util:
         (filepath, empFileName) = os.path.split(file)
         (filename, Suffix) = os.path.splitext(empFileName)
         Suffix = Suffix.split('.')[1]
+        tmp = '.'
         # 判断是否上传本地的
         if file_seat == 'localVideo':
             Suffix = Suffix.lower()
-            return OssDir + photoId + '-video-preview.' + Suffix, photoId, Suffix
+            tmp = '-video-preview.'
         elif file_seat == 'localThirdImage':
             Suffix = Suffix.lower()
-            return OssDir + photoId + '-video-cover-preview.' + Suffix, photoId, Suffix
-        elif file_seat == 'localImage':
-            Suffix = Suffix.lower()
-            return OssDir + photoId + '.' + Suffix, photoId, Suffix
+            tmp = '-video-cover-preview.'
         elif file_seat == 'watermark':
             Suffix = 'png'
-            return OssDir + file_seat + '/' + photoId + '.' + Suffix, photoId, Suffix
 
         if Suffix == "JPG":
             Suffix = Suffix.lower()
         elif Suffix == 'mp4':
             Suffix = Suffix.upper()
-        return OssDir + file_seat + '/' + photoId + '.' + Suffix, photoId, Suffix
+
+        return os.path.join(OssDir, file_seat, photoId + tmp + Suffix), photoId, Suffix
 
         # 取消分片上传事件、
 
@@ -283,24 +282,21 @@ class CommonFunction:
     # 上传文件
     @staticmethod
     def oss_upload_file(res_data, send_body, oss_type, oss_dir, file_seat):
-        from tools.funclib.provider.OSSFastUploadUtil import oss_util
-        # from lm.lm_config import AlltuuConfig
-        import os
-
         oss = None
 
         for filename, value in send_body['files'].items():
-            # with open(filename, 'wb') as f:
-            #     f.write(value)
+            with open(filename, 'wb') as f:
+                f.write(value)
             if oss_type == '4':
                 oss = oss_util(config.KeyId, config.KeySecret, None)
-                print(filename)
                 KB_size, uuid_name, fileName, Suffix = oss.upload_Url_selection(res_data['key'], file_seat, filename)
+            elif oss_type == '9':
+                oss = oss_util(res_data['AccessKeyId'], res_data['AccessKeySecret'], res_data['SecurityToken'])
+                KB_size, uuid_name, fileName, Suffix = oss.upload_Url_selection(oss_dir, file_seat, filename)
             else:
                 oss = oss_util(res_data['AccessKeyId'], res_data['AccessKeySecret'], res_data['SecurityToken'])
                 KB_size, uuid_name, fileName, Suffix = oss.upload_Url_selection(oss_dir, file_seat, filename)
-
-            # os.remove(filename)
+            os.remove(filename)
 
             if KB_size is not None:
                 return KB_size, uuid_name, fileName, Suffix
@@ -311,7 +307,8 @@ class CommonFunction:
 #
 
 if __name__ == '__main__':
-    send_body = {'files': {'/Users/liujin/pyProject/Liuma-engine/fileName.jpg': '/Users/liujin/pyProject/Liuma-engine/fileName.jpg'}}
+    send_body = {'files': {
+        '/Users/liujin/pyProject/Liuma-engine/fileName.jpg': '/Users/liujin/pyProject/Liuma-engine/fileName.jpg'}}
     d = {'accessid': 'LTAI5tKT2R6mXMqMp9NMdZiU', 'key': 'tmp/USER10007133/',
          'policy': 'eyJleHBpcmF0aW9uIjoiMjAyMy0wMy0yMFQxMDoxNjo0NS4zMjdaIiwiY29uZGl0aW9ucyI6W1siY29udGVudC1sZW5ndGgtcmFuZ2UiLDAsNTM2ODcwOTEyMF0sWyJzdGFydHMtd2l0aCIsIiRrZXkiLCJ0bXAvVVNFUjEwMDA3MTMzLyJdXX0=',
          'signature': 'XIl3aJSratJvru/CCzb1V83MOhk=', 'dir': 'tmp/USER10007133/', 'host': 'https://ssa.guituu.com',

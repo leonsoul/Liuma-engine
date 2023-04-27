@@ -121,8 +121,9 @@ class ApiRequestCollector:
     def collect_headers(self, api_data):
         self.collect_other(api_data, 'headers')
         # 根据请求体中的body的type来生成headers的Content-Type，代码在collect_body函数中
-        if self.others['headers'] is None:
+        if self.others['headers'] is None or self.others['headers'] == {"": ""}:
             self.others['headers'] = {'Content-Type': 'application/json;charset=UTF-8'}
+
 
         # elif 'content-type' not in [key.lower() for key in self.others['headers'].keys()]:
         #     self.others['headers']['Content-Type'] = 'application/json;charset=UTF-8'

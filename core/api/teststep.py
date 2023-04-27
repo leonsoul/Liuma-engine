@@ -108,8 +108,9 @@ class ApiTestStep:
                 res = session.request(self.collector.method, url, **self.collector.others)
             else:
                 res = request(self.collector.method, url, **self.collector.others)
-            DebugLogger("开始请求，请求参数为{}，请求路径为{}".format(
-                json.dumps(self.collector.others['data'], ensure_ascii=True), url))
+            if self.collector.others.get('data'):
+                DebugLogger("开始请求，请求参数为{}，请求路径为{}".format(
+                    json.dumps(self.collector.others['data'], ensure_ascii=True), url))
             end_time = datetime.datetime.now()
             # 记录结束时间、保存响应结果
             self.test.recordTransDuring(int((end_time - start_time).microseconds / 1000))
@@ -235,7 +236,9 @@ class ApiTestStep:
                         raise ExtractValueError('无法从{}位置提取依赖参数'.format(items['from']))
                     value = extract(items['method'], data, items['expression'])
                 key = items['name']
-                self.context[key] = value
+                # 先将所有的关联取值都置为string
+                self.context[key] = str(value)
+                # self.context[key] = value
 
     def check(self):
         """断言"""
