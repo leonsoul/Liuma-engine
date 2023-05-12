@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+import base64
 import re
 import ast
+import urllib
 
 from assertpy import assertpy
-
 
 class LMAssert:
     """断言"""
@@ -153,6 +154,19 @@ class LMAssert:
                                                                                    self.expected_result)
                 assertpy.assert_that(LMAssert.list_len(self.actual_result)).is_less_than_or_equal_to(
                     LMAssert.str2num(self.expected_result))
+            elif self.comparator in ["isReTrue", "正则判断存在"]:  # 正则判断存在
+                img_url_decode = self.actual_result
+                try:
+                    img_url_decode = urllib.parse.unquote(self.actual_result)
+                    # 校验图片是否是指定类型图片 -- 小图， 中图， 大图
+                    water = re.findall('watermark,image_[a-zA-Z0-9=+/]*', img_url_decode)
+                    if len(water):
+                        img_url_decode = img_url_decode.replace(water[0][16:],
+                                                                base64.b64decode(water[0][16:]).decode('utf-8'))
+                except:
+                    pass
+                assFailMsg = '实际值:({}) 正则表达式:({})，条件为否：'.format(img_url_decode, self.expected_result)
+                assertpy.assert_that(LMAssert.to_str(img_url_decode)).matches(self.expected_result)
             else:
                 raise AssertionTypeNotExist('没有{}该断言类型'.format(self.comparator))
             return True, 'success'

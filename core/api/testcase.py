@@ -36,13 +36,15 @@ class ApiTestCase:
     def _loop_execute(self, api_list, loop_id, index=0):
         """循环执行"""
         while index < len(api_list):
+            # 获得api用例信息
             api_data = api_list[index]
             index += 1
-            # 定义收集器
+            # 定义收集器，并实例api用例信息
             collector = ApiRequestCollector()
             collector.collect(api_data)
             step = ApiTestStep(self.test, self.session, collector, self.context, self.params)
             # 循环控制器
+            # 获得用例是否进行循环的判断
             step.collector.collect_looper(api_data)
             if len(step.collector.looper) > 0 and not (loop_id != "root" and index == 1):
                 # 非根循环 且并非循环第一个接口时才执行循环 从而避免循环套循环情况下的死循环

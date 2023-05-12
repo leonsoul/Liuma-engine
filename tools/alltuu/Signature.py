@@ -2,6 +2,7 @@ import hashlib
 import json
 
 import binascii
+import os
 import time
 import uuid
 from hashlib import md5
@@ -25,6 +26,11 @@ MAXBINSIZE = (MAXLINESIZE // 4) * 3
 #  requests  加密规则
 PC_source = '100101'
 api_v = '0'
+
+
+
+def ama_path_join(args):
+    return os.path.join(*[key + str(args[key]) for key in sorted(args.keys())])
 
 
 class Signature:
@@ -166,8 +172,9 @@ class Signature:
 
     @staticmethod
     def sign_url_v4c(path, args_map):
+        import hashlib
         # 直播相册加密
-        file_path = '/'.join([path, Signature().concatenating_url(args_map)])
+        file_path = os.path.join(path, ama_path_join(args_map))
         alltuu_config = AlltuuConfig()
         time_stamp = hex(args_map['t'] // 1000)[2:]
         hl = hashlib.md5()

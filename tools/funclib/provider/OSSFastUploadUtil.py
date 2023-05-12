@@ -12,31 +12,11 @@ import uuid
 import base64
 import oss2
 
-from lm.lm_config import IniReader
+from lm.lm_config import AlltuuConfig
 from oss2 import SizedFileAdapter, determine_part_size
 from oss2.models import PartInfo
 
-# from lm.lm_config import LMConfig, IniReader, AlltuuConfig
-
-# config = AlltuuConfig()
-CONFIG_PATH = '/Users/liujin/pyProject/Liuma-engine/config/config.ini'
-
-
-class AlltuuConfig(object):
-    """alltuu相关配置文件"""
-
-    def __init__(self, path=CONFIG_PATH):
-        reader = IniReader(path)
-        self.endpoint = reader.data('Oss', 'Endpoint')
-        self.bucket = reader.data('Oss', 'bucket')
-        self.KeyId = reader.data('Oss', 'KeyId')
-        self.KeySecret = reader.data('Oss', 'KeySecret')
-        self.CDNKey = reader.data('CDN', 'private-key')
-
-
-config = AlltuuConfig(CONFIG_PATH)
-
-
+config = AlltuuConfig()
 class oss_util:
     def __init__(self, OssKeyId, OssKeySecret, OssToken, EndPoint=config.endpoint, Bucket=config.bucket):
         if OssToken is not None:

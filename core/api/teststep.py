@@ -1,4 +1,5 @@
 import datetime
+from collections import OrderedDict
 from time import sleep
 from requests import request, Session
 from copy import deepcopy
@@ -65,7 +66,7 @@ class ApiTestStep:
 
             # 接口前置处理加密 --alltuu
             if self.collector.controller['encryption'].lower() == "setting":
-                args_map = {}
+                args_map = OrderedDict()
                 # 这里的签名有些问题
                 if self.collector.others['params'] is not None:
                     args_map.update(self.collector.others['params'])
@@ -80,12 +81,13 @@ class ApiTestStep:
                 # 只是简单的加密
                 signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'], args_map, no_sign_date=self.collector.private['no_sign_data'],source=self.collector.controller['From'])
                 url = url + '/' + 'v' + signature_string
-
             elif self.collector.controller['encryption'].lower() == "crm":
+                # 如果是crm加密，就走crm那一套
                 signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'],
                                                                       self.collector.others['data'], no_sign_date=self.collector.private['no_sign_data'],source=self.collector.controller['From'])
                 self.collector.others['data'].updata({signature: signature})
             elif self.collector.controller['encryption'].lower() == "live":
+                # 如果是直播相册加密
                 args_map = {}
                 if self.collector.others['params'] is not None:
                     args_map.update(self.collector.others['params'])
