@@ -25,7 +25,6 @@ MAXBINSIZE = (MAXLINESIZE // 4) * 3
 
 #  requests  加密规则
 PC_source = '100101'
-api_v = '0'
 
 
 
@@ -51,14 +50,12 @@ class Signature:
         return signature_string, signature_generate
 
     # sign_url_v4 返回V4签名
-    @staticmethod
-    def sign_url_v4(token, args_map, source=PC_source, limit=False, no_sign_date=None):
+    def sign_url_v4(self, token, args_map, source=PC_source, limit=False, no_sign_date=None):
         """
         sign_url_v4 返回V4签名
         @param token: 用户token
         @param args_map: 请求参数
         @param limit: 是否限流
-        @param no_sign_date: 不参与签名的参数
         @return:拼接接口请求体, 加密参数
         """
         if source is None:
@@ -66,10 +63,16 @@ class Signature:
         if no_sign_date is not None:
             for del_item in no_sign_date:
                 del args_map[del_item]
+        # 如果参数中存在v，那就将接口的版本改为对应的v  -- 应为有一个接口中存在v影响到了
+        if 'v' in args_map:
+            api_v = args_map['v']
+            del args_map['v']
+        else:
+            api_v = '0'
         timestamp = str(int(time.time() * 1000))  # 请求发起时间戳
         std_args_map = {"from": source, "timestamp": timestamp, "token": token, "version": api_v}
         # 把标准的四个参数组成的map和非标准参数args_map合并成一个map, 用来进行签名
-        signature_generate = Signature().Encryption_args_map(args_map, std_args_map)
+        signature_generate = self.Encryption_args_map(args_map, std_args_map)
         signature_string = "%s-%s-%s-%s-%s" % (source, timestamp, token, api_v, signature_generate)
         if limit:
             Guid = str(uuid.uuid3(uuid.NAMESPACE_DNS, str(uuid.uuid1()))).replace("-", "")
@@ -142,7 +145,6 @@ class Signature:
             validate_map = dict(std_args_map)
         elif isinstance(args_map, dict):
             validate_map = dict(args_map, **std_args_map)
-
         # 把所有参数按照参数名称进行字典序升序排序
         items = sorted(validate_map.items())
         validate_string_array = [value for key, value in items]
@@ -157,10 +159,8 @@ class Signature:
     @staticmethod
     def concatenating_url(args_map):
         """拼接URL"""
-        url_list = []
-        for key, value in args_map.items():
-            url_list.append(str(key) + str(value))
-        return "/".join(url_list)
+
+        return ama_path_join(args_map)
 
     @staticmethod
     def decode_url(args_map):
@@ -190,4 +190,5 @@ if __name__ == '__main__':
     #     str_list.append(i.split('='))
     # dict_map = dict(str_list)
     # print(dict_map)
-    print(Signature.sign_url_v4c('rest/v4c/fa', {"a": '123', 't': 123412312312}))
+    # print(Signature.sign_url_v4c('rest/v4c/fa', {"a": '123', 't': 123412312312}))
+    print(Signature.concatenating_url({'2':3,'1':1}))
