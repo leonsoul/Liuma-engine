@@ -22,10 +22,10 @@ class ApiTestCase:
         setattr(test, 'test_case_name', self.case_message['caseName'])
         setattr(test, 'test_case_desc', self.case_message['comment'])
         self.functions = self.case_message['functions']
-        self.params = handle_params_data(self.case_message['params']) # 设置自定义的参数
+        self.params = handle_params_data(self.case_message['params'])  # 设置自定义的参数
         self.template = Template(self.test, self.context, self.functions, self.params)  # 构建执行模版
         self.json_path_parser = JsonPathParser()
-        self.comp = re.compile(r"\{\{.*?\}\}")
+        self.comp = re.compile(r"\{\{.*?}}")
 
     def execute(self):
         """用例执行入口函数"""
@@ -33,10 +33,7 @@ class ApiTestCase:
             raise RuntimeError("无法获取API相关数据, 请重试!!!")
         self.loop_execute(self.case_message['apiList'], "root")
 
-    def loop_execute(self, api_list, loop_id, step_n=0):
-        self._loop_execute(self.case_message['apiList'], "root")
-
-    def _loop_execute(self, api_list, loop_id, index=0):
+    def loop_execute(self, api_list, loop_id, index=0, step_n=0):
         """循环执行"""
         while step_n < len(api_list):
             api_data = api_list[step_n]
@@ -64,7 +61,8 @@ class ApiTestCase:
                 result = step.condition_controller(self)
                 if result is not True:
                     self.test.updateTransStatus(3)  # 任意条件不满足 跳过执行
-                    self.test.debugLog('[{}]接口条件控制器判断为否: {}'.format(api_data['apiId'],api_data['apiName'], result))
+                    self.test.debugLog(
+                        '[{}]接口条件控制器判断为否: {}'.format(api_data['apiId'], api_data['apiName'], result))
                     continue
             # 收集请求主体并执行
             step.collector.collect(api_data)
@@ -90,10 +88,10 @@ class ApiTestCase:
                 # 检查step的断言结果
                 if step.assert_result['result']:
                     self.test.debugLog('[{}]接口断言成功: {}'.format(step.collector.apiName,
-                                                                   dict2str(step.assert_result['checkMessages'])))
+                                                                     dict2str(step.assert_result['checkMessages'])))
                 else:
                     self.test.errorLog('[{}]接口断言失败: {}'.format(step.collector.apiName,
-                                                                   dict2str(step.assert_result['checkMessages'])))
+                                                                     dict2str(step.assert_result['checkMessages'])))
                     raise AssertionError(dict2str(step.assert_result['checkMessages']))
             except Exception as e:
                 error_info = sys.exc_info()
@@ -174,22 +172,11 @@ class ApiTestCase:
             self.template.request_body = render_value
         else:
             for expr, value in get_json_relation(data, "body"):
-                    expression = self.json_path_parser.parse(expr)
-                    expression.update(query, render_value)
-                    self.template.request_query = query
-            step.collector.others.setdefault("params", self.template.request_query)
-        # 最后渲染body数据
-        if body is not None:
-            if step.collector.body_type in ("json", "form-urlencoded", "form-data"):
-                # 将body按jsonpath的格式提取出来，以列表的形式
-                for expr, value in get_json_relation(body, "body"):
-                    # 如果value的中有{{index}}，将value存到模板里
                 if isinstance(value, str) and self.comp.search(value) is not None:
                     self.template.init(value)
                     render_value = self.template.render()
                     if name == "headers":
                         render_value = str(render_value)
-                        # 将data中的{{a}}数据更新为对应的变量
                     expression = self.json_path_parser.parse(expr)
                     expression.update(data, render_value)
                     if name == "body":
@@ -199,25 +186,8 @@ class ApiTestCase:
                     else:
                         self.template.request_headers = data
         if name == "body":
-                self.template.init(body)
-                render_value = self.template.render()
-                self.template.request_body = render_value
-            # 将others的'data'或'query'值替换成新的
             step.collector.others.setdefault(pop_key, self.template.request_body)
         elif name == "query":
             step.collector.others.setdefault("params", self.template.request_query)
         else:
             step.collector.others.setdefault("headers", self.template.request_headers)
-
-
-        if step.collector.assertions is not None:
-            self.template.init(step.collector.assertions)
-            step.collector.assertions = self.template.render()
-        if step.collector.relations is not None:
-            self.template.init(step.collector.relations)
-            step.collector.relations = self.template.render()
-        if step.collector.controller['token'] == '{{token}}':
-            self.template.init(step.collector.controller['token'])
-            render_value = self.template.render()
-            step.collector.controller['token'] = render_value
-            DebugLogger(step.collector.controller['token'])

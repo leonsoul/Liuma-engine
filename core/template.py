@@ -90,21 +90,25 @@ class Template:
                         index = None
                 if key in self.context: # 优先从关联参数中取
                     if index is None:
-                if key in self.context:     # 关联参数
-                    value = self.context.get(key)
-                elif key.startswith(self.param_prefix) and key[1:] in self.params:  # 使用&来读取自定义公参|自定义参数
-                    value = self.params.get(key[1:])
-                elif key.startswith(self.function_prefix):  # 关联函数
+                        value = self.context.get(key)
+                    else:
+                        value = self.context.get(key)[index]
+                elif key in self.params:
+                    if index is None:
+                        value = self.params.get(key)
+                    else:
+                        value = self.params.get(key)[index]
+                elif key.startswith(self.param_prefix) and key[1:] in self.params:  # 兼容老版本 使用&来读取自定义公参|自定义参数
+                    if index is None:
+                        value = self.params.get(key[1:])
                     else:
                         value = self.params.get(key[:-1])[index]
-                elif key.startswith(self.function_prefix):
+                elif key.startswith(self.function_prefix):  # 关联函数
                     name_args = self.split_func(key, self.function_prefix)
-                    # 将函数名和变量列在list中
                     name_args = [_ for _ in map(self.replace_param, name_args)]
                     value = self.func_lib(name_args[0], *name_args[1:])
                 else:
                     raise KeyError('不存在的公共参数、关联变量或内置函数: {}'.format(key))
-
                 if not flag and isinstance(value, str):
                     if '"' in value:
                         value = json.dumps(value)[1:-1]
