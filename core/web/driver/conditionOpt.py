@@ -1,6 +1,8 @@
+import sys
+
 from selenium.common.exceptions import NoSuchElementException
 from core.assertion import LMAssert
-from core.web.driver.operation import Operation
+from core.web.driver import Operation
 
 
 class Condition(Operation):
@@ -34,7 +36,7 @@ class Condition(Operation):
         """判断页面源码"""
         try:
             actual = self.driver.page_source
-            self.test.debugLog("成功获取page source:%s" % str(actual))
+            self.test.debugLog("成功获取page source: : 源码过长不予展示")
         except Exception as e:
             self.test.errorLog("无法获取page source")
             raise e
@@ -346,8 +348,28 @@ class Condition(Operation):
         names["test"] = self.test
         try:
             """条件操作需要返回被断言的值 以sys_return(value)返回"""
+            def print(*args, sep=' ', end='\n', file=None, flush=False):
+                if file is None or file in (sys.stdout, sys.stderr):
+                    file = names["test"].stdout_buffer
+                self.print(*args, sep=sep, end=end, file=file, flush=flush)
+
             def sys_return(res):
                 names["_exec_result"] = res
+
+            def sys_get(name):
+                if name in names["test"].context:
+                    return names["test"].context[name]
+                elif name in names["test"].common_params:
+                    return names["test"].common_params[name]
+                else:
+                    raise KeyError("不存在的公共参数或关联变量: {}".format(name))
+
+            def sys_put(name, val, ps=False):
+                if ps:
+                    names["test"].common_params[name] = val
+                else:
+                    names["test"].context[name] = val
+
             exec(code)
             self.test.debugLog("成功执行 %s" % kwargs["trans"])
         except NoSuchElementException as e:

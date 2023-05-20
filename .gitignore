@@ -6,4 +6,6 @@ data
 *.log
 browser
 config
+file
+browser/**.exe
 

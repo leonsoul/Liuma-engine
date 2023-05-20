@@ -7,16 +7,21 @@ import copy
 from lm.lm_log import DebugLogger
 
 
-def extract_by_jsonpath(api_data: dict, expression: str):
-    value = jsonpath.jsonpath(api_data, expression)
+def extract_by_jsonpath(data: (dict, str), expression: str):
+    if not isinstance(data, dict):
+        raise ExtractValueError('被提取的值不是json, 不支持jsonpath')
+    value = jsonpath.jsonpath(data, expression)
     if value:
         return value[0] if len(value) == 1 else value
     else:
         raise ExtractValueError('jsonpath表达式错误: {}'.format(expression))
 
 
-def extract_by_regex(api_data: dict, pattern: str):
-    content = json.dumps(api_data, ensure_ascii=False)
+def extract_by_regex(data: (dict, str), pattern: str):
+    if isinstance(data, dict):
+        content = json.dumps(data, ensure_ascii=False)
+    else:
+        content = data
     result = re.findall(pattern, content)
     if len(result) > 0:
         return result[0] if len(result) == 1 else result
@@ -73,7 +78,7 @@ def proxies_join(proxies: dict):
         raise ProxiesError("未设置代理账号或密码")
 
 
-def extract(name: str, data: dict, expression: str):
+def extract(name: str, data: (dict, str), expression: str):
     if name == 'jsonpath':
         return extract_by_jsonpath(data, expression)
     elif name == 'regular':
@@ -94,31 +99,28 @@ def get_case_message(data):
                 return json.load(f)
 
 
-def handle_operation_data(data):
-    result = {}
-    for key, item in data.items():
-        data_type = item["type"]
-        data_value = item["value"]
-        try:
-            if data_type == "JSONObject":
-                data_value = eval(data_value)
-            elif data_type == "JSONArray":
-                data_value = eval(data_value)
-            elif data_type == "Boolean":
-                if data_value.lower() == "true":
-                    data_value = True
-                else:
-                    data_value = False
-            elif data_type == "Int":
-                data_value = int(data_value)
-            elif data_type == "Float":
-                data_value = float(data_value)
+def handle_operation_data(data_type, data_value):
+    try:
+        if data_type == "JSONObject":
+            data_value = eval(data_value)
+        elif data_type == "JSONArray":
+            data_value = eval(data_value)
+        elif data_type == "Boolean":
+            if data_value.lower() == "true":
+                data_value = True
             else:
-                data_value = data_value
-        except:
-            pass
-        result[key] = data_value
-    return result
+                data_value = False
+        elif data_type == "Int":
+            data_value = int(data_value)
+        elif data_type == "Float":
+            data_value = float(data_value)
+        elif data_type == "Number":
+            data_value = float(data_value) if "." in data_value else int(data_value)
+        else:
+            data_value = data_value
+    except:
+        pass
+    return data_value
 
 
 def handle_params_data(params):
@@ -261,6 +263,8 @@ def relate_sort(data, data_from):
     for (key, value) in sorted_list:
         if data_from == "query":
             sign = "#{_REQUEST_QUERY}"
+        elif data_from == "headers":
+            sign = "#{_REQUEST_HEADERS}"
         else:
             sign = "#{_REQUEST_BODY}"
         if sign in str(value):

@@ -22,8 +22,8 @@ class ApiTestCase:
         setattr(test, 'test_case_name', self.case_message['caseName'])
         setattr(test, 'test_case_desc', self.case_message['comment'])
         self.functions = self.case_message['functions']
-        self.params = handle_params_data(self.case_message['params'])  # 设置自定义的参数
-        self.template = Template(self.context, self.functions, self.params)  # 构建执行模版
+        self.params = handle_params_data(self.case_message['params']) # 设置自定义的参数
+        self.template = Template(self.test, self.context, self.functions, self.params)  # 构建执行模版
         self.json_path_parser = JsonPathParser()
         self.comp = re.compile(r"\{\{.*?\}\}")
 
@@ -31,59 +31,69 @@ class ApiTestCase:
         """用例执行入口函数"""
         if self.case_message['apiList'] is None:
             raise RuntimeError("无法获取API相关数据, 请重试!!!")
+        self.loop_execute(self.case_message['apiList'], "root")
+
+    def loop_execute(self, api_list, loop_id, step_n=0):
         self._loop_execute(self.case_message['apiList'], "root")
 
     def _loop_execute(self, api_list, loop_id, index=0):
         """循环执行"""
+        while step_n < len(api_list):
+            api_data = api_list[step_n]
+            # 定义收集器
         while index < len(api_list):
             # 获得api用例信息
             api_data = api_list[index]
             index += 1
             # 定义收集器，并实例api用例信息
             collector = ApiRequestCollector()
-            collector.collect(api_data)
             step = ApiTestStep(self.test, self.session, collector, self.context, self.params)
             # 循环控制器
-            # 获得用例是否进行循环的判断
             step.collector.collect_looper(api_data)
-            if len(step.collector.looper) > 0 and not (loop_id != "root" and index == 1):
+            if len(step.collector.looper) > 0 and not (loop_id != "root" and step_n == 0):
                 # 非根循环 且并非循环第一个接口时才执行循环 从而避免循环套循环情况下的死循环
-                step.looper_controller(self, api_list, index)
-                index = index + step.collector.looper["num"] - 1  # 跳过本次循环中执行的接口
+                step.looper_controller(self, api_list, step_n)
+                step_n = step_n + step.collector.looper["num"]  # 跳过本次循环中执行的接口
                 continue  # 母循环最后一个接口索引必须超过子循环的最后一个接口索引 否则超过母循环的接口无法执行
+            step_n += 1
             # 定义事务
-            self.test.defineTrans(api_data['apiId'], api_data['apiName'], api_data['path'])
+            self.test.defineTrans(api_data['apiId'], api_data['apiName'], api_data['path'], api_data['apiDesc'])
             # 条件控制器
             step.collector.collect_conditions(api_data)
             if len(step.collector.conditions) > 0:
                 result = step.condition_controller(self)
                 if result is not True:
                     self.test.updateTransStatus(3)  # 任意条件不满足 跳过执行
-                    self.test.debugLog(
-                        '[{}][{}]接口条件控制器判断为否: {}'.format(api_data['apiId'], api_data['apiName'], result))
+                    self.test.debugLog('[{}]接口条件控制器判断为否: {}'.format(api_data['apiId'],api_data['apiName'], result))
                     continue
             # 收集请求主体并执行
             step.collector.collect(api_data)
             try:
-                # 执行前置脚本
-                if step.collector.controller["preScript"] is not None:
-                    step.exec_script(step.collector.controller["preScript"])
+                # 执行前置脚本和sql
+                if step.collector.controller["pre"] is not None:
+                    for pre in step.collector.controller["pre"]:
+                        if pre['name'] == 'preScript':
+                            step.exec_script(pre["value"])
+                        else:
+                            step.exec_sql(pre["value"], self)
                 # 渲染主体
-                self._render_content(step)
+                self.render_content(step)
                 # 执行step, 接口参数移除，接口请求，接口响应，断言操作，依赖参数提取
                 step.execute()
-                # 执行后置脚本
-                if step.collector.controller["postScript"] is not None:
-                    step.exec_script(step.collector.controller["postScript"])
+                # 执行后置脚本和sql
+                if step.collector.controller["post"] is not None:
+                    for post in step.collector.controller["post"]:
+                        if post['name'] == 'postScript':
+                            step.exec_script(post["value"])
+                        else:
+                            step.exec_sql(post["value"], self)
                 # 检查step的断言结果
                 if step.assert_result['result']:
-                    self.test.debugLog('[{}][{}]接口断言成功: {}'.format(step.collector.apiId,
-                                                                         step.collector.apiName,
-                                                                         dict2str(step.assert_result['checkMessages'])))
+                    self.test.debugLog('[{}]接口断言成功: {}'.format(step.collector.apiName,
+                                                                   dict2str(step.assert_result['checkMessages'])))
                 else:
-                    self.test.errorLog('[{}][{}]接口断言失败: {}'.format(step.collector.apiId,
-                                                                         step.collector.apiName,
-                                                                         dict2str(step.assert_result['checkMessages'])))
+                    self.test.errorLog('[{}]接口断言失败: {}'.format(step.collector.apiName,
+                                                                   dict2str(step.assert_result['checkMessages'])))
                     raise AssertionError(dict2str(step.assert_result['checkMessages']))
             except Exception as e:
                 error_info = sys.exc_info()
@@ -96,25 +106,34 @@ class ApiTestCase:
                 else:
                     raise e
 
-    def _render_looper(self, looper):
+    def render_looper(self, looper):
         self.template.init(looper)
         _looper = self.template.render()
-        try:
-            times = int(_looper["times"])
-        except:
-            times = 1
-        _looper["times"] = times
+        if "times" in _looper:
+            try:
+                times = int(_looper["times"])
+            except:
+                times = 1
+            _looper["times"] = times
         return _looper
 
-    def _render_conditions(self, conditions):
+    def render_conditions(self, conditions):
         self.template.init(conditions)
         return self.template.render()
 
-    def _render_content(self, step):
+    def render_sql(self, sql):
+        self.template.init(sql)
+        return self.template.render()
+
+    def render_content(self, step):
         # 初始化模板，将收集到的路径传进去，加载文件，清空堆栈和map
         self.template.init(step.collector.path)
 
         step.collector.path = self.template.render()
+        if step.collector.others.get('headers') is not None:
+            headers = step.collector.others.pop('headers')
+        else:
+            headers = None
         if step.collector.others.get('params') is not None:
             query = step.collector.others.pop('params')
         else:
@@ -130,13 +149,31 @@ class ApiTestCase:
             pop_key = None
         self.template.init(step.collector.others)
         step.collector.others = self.template.render()
-        self.template.set_help_data(step.collector.path, step.collector.others.get('headers'), query, body)
-        # 再渲染query参数
-        if query is not None:
-            for expr, value in get_json_relation(query, "query"):
-                if isinstance(value, str) and self.comp.search(value) is not None:
-                    self.template.init(value)
-                    render_value = self.template.render()
+        self.template.set_help_data(step.collector.path, headers, query, body)
+        if "#{_REQUEST_QUERY}" in str(headers) or "#{_REQUEST_BODY}" in str(headers):
+            self.render_json(step, query, "query")
+            self.render_json(step, body, "body", pop_key)
+            self.render_json(step, headers, "headers")
+        else:
+            self.render_json(step, headers, "headers")
+            self.render_json(step, query, "query")
+            self.render_json(step, body, "body", pop_key)
+        if step.collector.assertions is not None:
+            self.template.init(step.collector.assertions)
+            step.collector.assertions = self.template.render()
+        if step.collector.relations is not None:
+            self.template.init(step.collector.relations)
+            step.collector.relations = self.template.render()
+
+    def render_json(self, step, data, name, pop_key=None):
+        if data is None:
+            return
+        if name == "body" and step.collector.body_type not in ("json", "form-urlencoded", "form-data"):
+            self.template.init(data)
+            render_value = self.template.render()
+            self.template.request_body = render_value
+        else:
+            for expr, value in get_json_relation(data, "body"):
                     expression = self.json_path_parser.parse(expr)
                     expression.update(query, render_value)
                     self.template.request_query = query
@@ -147,19 +184,32 @@ class ApiTestCase:
                 # 将body按jsonpath的格式提取出来，以列表的形式
                 for expr, value in get_json_relation(body, "body"):
                     # 如果value的中有{{index}}，将value存到模板里
-                    if isinstance(value, str) and self.comp.search(value) is not None:
-                        self.template.init(value)
-                        render_value = self.template.render()
+                if isinstance(value, str) and self.comp.search(value) is not None:
+                    self.template.init(value)
+                    render_value = self.template.render()
+                    if name == "headers":
+                        render_value = str(render_value)
                         # 将data中的{{a}}数据更新为对应的变量
-                        expression = self.json_path_parser.parse(expr)
-                        expression.update(body, render_value)
-                        self.template.request_body = body
-            else:
+                    expression = self.json_path_parser.parse(expr)
+                    expression.update(data, render_value)
+                    if name == "body":
+                        self.template.request_body = data
+                    elif name == "query":
+                        self.template.request_query = data
+                    else:
+                        self.template.request_headers = data
+        if name == "body":
                 self.template.init(body)
                 render_value = self.template.render()
                 self.template.request_body = render_value
             # 将others的'data'或'query'值替换成新的
             step.collector.others.setdefault(pop_key, self.template.request_body)
+        elif name == "query":
+            step.collector.others.setdefault("params", self.template.request_query)
+        else:
+            step.collector.others.setdefault("headers", self.template.request_headers)
+
+
         if step.collector.assertions is not None:
             self.template.init(step.collector.assertions)
             step.collector.assertions = self.template.render()
