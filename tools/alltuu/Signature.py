@@ -54,6 +54,8 @@ class Signature:
         """
         sign_url_v4 返回V4签名
         @param token: 用户token
+        @param source: 版本
+        @param no_sign_date: 是否加密
         @param args_map: 请求参数
         @param limit: 是否限流
         @return:拼接接口请求体, 加密参数
@@ -180,6 +182,14 @@ class Signature:
         hl = hashlib.md5()
         hl.update((alltuu_config.CDNKey + '/' + file_path + time_stamp).encode(encoding='utf-8'))
         return '/{sign}/{time_stamp}/{file}'.format(sign=hl.hexdigest(), time_stamp=time_stamp, file=file_path)
+
+
+def decode_url(args_map):
+    args_map = args_map.replace('+', "%20")
+    str_list = []
+    for i in unquote(args_map).split('&'):
+        str_list.append(i.split('='))
+    return dict(str_list)
 
 
 if __name__ == '__main__':

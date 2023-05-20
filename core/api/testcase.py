@@ -59,7 +59,8 @@ class ApiTestCase:
                 result = step.condition_controller(self)
                 if result is not True:
                     self.test.updateTransStatus(3)  # 任意条件不满足 跳过执行
-                    self.test.debugLog('[{}][{}]接口条件控制器判断为否: {}'.format(api_data['apiId'], api_data['apiName'], result))
+                    self.test.debugLog(
+                        '[{}][{}]接口条件控制器判断为否: {}'.format(api_data['apiId'], api_data['apiName'], result))
                     continue
             # 收集请求主体并执行
             step.collector.collect(api_data)
@@ -77,12 +78,12 @@ class ApiTestCase:
                 # 检查step的断言结果
                 if step.assert_result['result']:
                     self.test.debugLog('[{}][{}]接口断言成功: {}'.format(step.collector.apiId,
-                                                                   step.collector.apiName,
-                                                                   dict2str(step.assert_result['checkMessages'])))
+                                                                         step.collector.apiName,
+                                                                         dict2str(step.assert_result['checkMessages'])))
                 else:
                     self.test.errorLog('[{}][{}]接口断言失败: {}'.format(step.collector.apiId,
-                                                                   step.collector.apiName,
-                                                                   dict2str(step.assert_result['checkMessages'])))
+                                                                         step.collector.apiName,
+                                                                         dict2str(step.assert_result['checkMessages'])))
                     raise AssertionError(dict2str(step.assert_result['checkMessages']))
             except Exception as e:
                 error_info = sys.exc_info()
