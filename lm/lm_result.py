@@ -7,6 +7,15 @@ import unittest
 class LMResult(unittest.TestResult):
 
     def __init__(self, result, lock, queue, verbosity=1):
+        """
+        存放结果内容
+        Parameters
+        ----------
+        result
+        lock
+        queue
+        verbosity
+        """
         unittest.TestResult.__init__(self)
         self.verbosity = verbosity
         self.default_result = result

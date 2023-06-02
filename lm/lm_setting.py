@@ -2,6 +2,8 @@
 import os
 import copy
 import threading
+import traceback
+
 from requests import Session
 import zipfile
 from lm.lm_run import LMRun
@@ -23,6 +25,7 @@ class LMSetting(object):
         try:
             file = LMApi().download_task_file(data_url)
         except Exception as e:
+            traceback.print_exc()
             ErrorLogger("数据拉取失败 错误信息: %s" % str(e))
             return None
         else:
@@ -106,24 +109,36 @@ class LMSetting(object):
         return test_plan
 
     def create_thread(self, plan, queue, current_exec_status):
-        runTime = 1
-        if self.task["reRun"]:
+        """
+        创建线程执行任务
+        Parameters
+        ----------
+        plan：收集到的用例计划
+        queue：队列
+        current_exec_status：当前执行的状态
+
+        Returns
+        -------
+
+        """
+        runTime = 1  # 定义当前的运行次数
+        if self.task["reRun"]:  # 如果任务中reRun字段存在的话，当前的运行次数置为2，认为是有失败重试的机制
             runTime = 2
         task_id = self.task["taskId"]
-        queue.put("run_all_start--%s" % task_id)
+        queue.put("run_all_start--%s" % task_id)  # 将当前队列加入提醒文案
         for index in range(runTime):
             # 第一次全部运行，之后运行失败的用例
-            if index == 0:
+            if index == 0:  # 第一次运行 runTime 为1时，将所有的plan置为test_plan（执行plan）
                 test_plan = plan
-            else:
+            else:  # 第一次运行完成之后，收集失败用例，重新运行所有的失败用例
                 test_plan = self.read_fail_case(test_plan, default_result)
             default_result = []
-            if len(test_plan) > 0:
+            if len(test_plan) > 0:  # 如果收集到的用例列表大于1，开始执行
                 queue.put("start_run_index--%s" % index)
-                default_lock = threading.RLock()
+                default_lock = threading.RLock()  # 创建一个进程锁
                 threads = []
                 for collection, test_case_list in test_plan.items():
-                    if len(test_case_list) != 0:
+                    if len(test_case_list) != 0:  # 如果接口用例中有接口数据，加入到线程中，一次性执行
                         s_thread = threading.Thread(target=LMRun(test_case_list, index + 1, default_result,
                                                                  default_lock, queue).run_test)
                         threads.append(s_thread)
@@ -136,6 +151,17 @@ class LMSetting(object):
 
     @staticmethod
     def read_fail_case(test_plan, result):
+        """
+
+        Parameters
+        ----------
+        test_plan
+        result
+
+        Returns
+        -------
+
+        """
         new_test_plan = copy.deepcopy(test_plan)
         for collection, test_case_list in new_test_plan.items():
             for test in test_case_list:
