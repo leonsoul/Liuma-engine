@@ -1,6 +1,8 @@
+import sys
+
 from selenium.common.exceptions import NoSuchElementException
 
-from core.web.driver.operation import Operation
+from core.web.driver import Operation
 from datetime import datetime
 from time import sleep
 
@@ -234,6 +236,25 @@ class Browser(Operation):
         names["driver"] = self.driver
         names["test"] = self.test
         try:
+            def print(*args, sep=' ', end='\n', file=None, flush=False):
+                if file is None or file in (sys.stdout, sys.stderr):
+                    file = names["test"].stdout_buffer
+                self.print(*args, sep=sep, end=end, file=file, flush=flush)
+
+            def sys_get(name):
+                if name in names["test"].context:
+                    return names["test"].context[name]
+                elif name in names["test"].common_params:
+                    return names["test"].common_params[name]
+                else:
+                    raise KeyError("不存在的公共参数或关联变量: {}".format(name))
+
+            def sys_put(name, val, ps=False):
+                if ps:
+                    names["test"].common_params[name] = val
+                else:
+                    names["test"].context[name] = val
+
             exec(code)
             self.test.debugLog("成功执行 %s" % kwargs["trans"])
         except NoSuchElementException as e:

@@ -6,7 +6,7 @@ from lm.lm_config import LMConfig
 
 
 class LMRun(object):
-    def __init__(self, plan_tuple, run_index, default_result, default_lock, queue, verbosity=2):
+    def __init__(self, plan_tuple, run_index, default_result, default_lock, queue):
         """
         创建用例运行类
         Parameters
@@ -16,14 +16,12 @@ class LMRun(object):
         default_result： 默认的结果列表
         default_lock： 线程锁
         queue： 队列
-        verbosity
         """
         self.plan_tuple = plan_tuple
         self.run_index = run_index
         self.default_result = default_result
         self.default_lock = default_lock
         self.queue = queue
-        self.verbosity = verbosity
 
     def run_test(self):
         suite = unittest.TestSuite()
@@ -47,10 +45,10 @@ class LMRun(object):
             # 将任务加到suite中
             suite.addTest(test_case)
 
-        result = lm_result.LMResult(self.default_result, self.default_lock, self.queue, verbosity=self.verbosity)
+        result = lm_result.LMResult(self.default_result, self.default_lock, self.queue)
 
         try:
-            # 使用suite执行LMResult方法
+            # 使用suite执行LMResult方法，执行测试用例
             suite(result)
         except Exception as ex:
             ErrorLogger("Failed to run test(RunTime:run%s & ThreadName:%s), Error info:%s" %

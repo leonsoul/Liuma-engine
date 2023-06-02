@@ -4,6 +4,7 @@ import copy
 import threading
 import traceback
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from requests import Session
 import zipfile
 from lm.lm_run import LMRun
@@ -125,7 +126,8 @@ class LMSetting(object):
         if self.task["reRun"]:  # 如果任务中reRun字段存在的话，当前的运行次数置为2，认为是有失败重试的机制
             runTime = 2
         task_id = self.task["taskId"]
-        queue.put("run_all_start--%s" % task_id)  # 将当前队列加入提醒文案
+        max_thread = self.task["maxThread"]
+        queue.put("run_all_start--%s" % task_id) # 将当前队列加入提醒文案
         for index in range(runTime):
             # 第一次全部运行，之后运行失败的用例
             if index == 0:  # 第一次运行 runTime 为1时，将所有的plan置为test_plan（执行plan）
@@ -135,17 +137,13 @@ class LMSetting(object):
             default_result = []
             if len(test_plan) > 0:  # 如果收集到的用例列表大于1，开始执行
                 queue.put("start_run_index--%s" % index)
-                default_lock = threading.RLock()  # 创建一个进程锁
-                threads = []
-                for collection, test_case_list in test_plan.items():
-                    if len(test_case_list) != 0:  # 如果接口用例中有接口数据，加入到线程中，一次性执行
-                        s_thread = threading.Thread(target=LMRun(test_case_list, index + 1, default_result,
-                                                                 default_lock, queue).run_test)
-                        threads.append(s_thread)
-                for t in threads:
-                    t.start()
-                for t in threads:
-                    t.join()
+                default_lock = threading.RLock()
+                # 进行线程池管理执行 设置最大并发
+                with ThreadPoolExecutor(max_workers=max_thread) as t:
+                    executors = [t.submit(LMRun(test_case_list, index + 1, default_result, default_lock,
+                                                queue).run_test, ) for test_case_list in test_plan.values()]
+                    as_completed(executors)
+
         queue.put("run_all_stop--%s" % task_id)
         current_exec_status.value = 1
 
@@ -180,3 +178,19 @@ class LMSetting(object):
                 if len(test_plan[collection]) == 0:
                     del test_plan[collection]
         return test_plan
+
+
+class LMSession(object):
+    """API测试专用"""
+    def __init__(self):
+        self.session = Session()
+
+
+class LMDriver(object):
+    """WEB测试专用"""
+    def __init__(self):
+        self.driver = None
+        self.config = LMConfig()
+        self.browser_opt = self.config.browser_opt
+        self.browser_path = self.config.browser_path
+

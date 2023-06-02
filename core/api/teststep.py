@@ -1,6 +1,8 @@
 import datetime
+import sys
 from collections import OrderedDict
 from time import sleep
+
 from requests import request, Session
 from copy import deepcopy
 import json
@@ -8,6 +10,7 @@ import json
 from core.assertion import LMAssert
 from lm.lm_log import DebugLogger
 from tools.alltuu.Signature import Signature
+from tools.utils.sql import SQLConnect
 from tools.utils.utils import extract, ExtractValueError, url_join
 from urllib.parse import urlencode
 
@@ -28,7 +31,7 @@ class ApiTestStep:
         self.session = session
         self.collector = collector
         self.context = context
-        self.params = params    # 公参
+        self.params = params
         self.test = test
         self.status_code = None
         self.response_headers = None
@@ -36,11 +39,12 @@ class ApiTestStep:
         self.response_content_bytes = None
         self.response_cookies = None
         self.assert_result = None
+        self.print = print
 
     def execute(self):
         """测试执行"""
         try:
-            self.test.debugLog('[{}][{}]接口执行开始'.format(self.collector.apiId, self.collector.apiName))
+            self.test.debugLog('[{}]接口执行开始'.format(self.collector.apiName))
             request_log = '【请求信息】:<br>'
             request_log += '{} {}<br>'.format(self.collector.method, url_join(self.collector.url, self.collector.path))
             for key, value in self.collector.others.items():
@@ -52,14 +56,12 @@ class ApiTestStep:
                                                                ["文件长度%s: %s" % (k, len(v)) for k, v in value.items()])
                         if isinstance(value, list):
                             request_log += '{}: {}<br>'.format(c_key, [i[1][0] for i in value])
+                    elif c_key == '请求体':
+                        request_log += '<span>{}: {}</span><br>'.format(c_key, dict2str(value))
                     else:
                         request_log += '{}: {}<br>'.format(c_key, log_msg(value))
             # 如果是x-www-form-urlencoded 格式，字段中有使用list或dict会报错，但是我们在系统中都会使用字符串代替，所以这段代码先注释掉了
             self.test.debugLog(request_log[:-4])
-            # if self.collector.body_type == "form-urlencoded" and 'data' in self.collector.others:
-            #     self.collector.others['data'] = urlencode(self.collector.others['data'])
-            # if self.collector.body_type in ("text", "xml", "html") and 'data' in self.collector.others:
-            #     self.collector.others['data'] = self.collector.others['data'].encode("utf-8")
             if 'files' in self.collector.others and self.collector.others['files'] is not None:
                 self.pop_content_type()
             url = url_join(self.collector.url, self.collector.path)
@@ -74,9 +76,6 @@ class ApiTestStep:
                     self.collector.others['params'] = None
                 # 有两个选择，一个是在转义之前保存一分数据，另外一种是单独解密出来
                 if 'data' in self.collector.others:
-                    # if self.collector.body_type == "form-urlencoded":
-                    #     args_map.update(Signature().decode_url(self.collector.others['data']))
-                    # else:
                     args_map.update(self.collector.others['data'])
                 # 只是简单的加密
                 signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'], args_map, no_sign_date=self.collector.private['no_sign_data'],source=self.collector.controller['From'])
@@ -99,15 +98,15 @@ class ApiTestStep:
                 self.test.debugLog("请求前等待%sS" % int(self.collector.controller["sleepBeforeRun"]))
             start_time = datetime.datetime.now()
             # 判断是否使用session
-            if self.collector.controller["useSession"].lower() == 'true' and self.collector.controller[
-                "saveSession"].lower() == "true":
-                res = self.session.request(self.collector.method, url, **self.collector.others)
+            if self.collector.controller["useSession"].lower() == 'true' and self.collector.controller["saveSession"].lower() == "true":
+                res = self.session.session.request(self.collector.method, url, **self.collector.others)
             elif self.collector.controller["useSession"].lower() == "true":
-                session = deepcopy(self.session)
+                session = deepcopy(self.session.session)
                 res = session.request(self.collector.method, url, **self.collector.others)
             elif self.collector.controller["saveSession"].lower() == "true":
                 session = Session()
                 res = session.request(self.collector.method, url, **self.collector.others)
+                self.session.session = session
             else:
                 res = request(self.collector.method, url, **self.collector.others)
             if self.collector.others.get('data'):
@@ -136,12 +135,12 @@ class ApiTestStep:
             # 关联参数
             self.extract_depend_params()
         finally:
-            self.test.debugLog('[{}][{}]接口执行结束'.format(self.collector.apiId, self.collector.apiName))
+            self.test.debugLog('[{}]接口执行结束'.format(self.collector.apiName))
             if int(self.collector.controller["sleepAfterRun"]) > 0:
                 sleep(int(self.collector.controller["sleepAfterRun"]))
                 self.test.debugLog("请求后等待%sS" % int(self.collector.controller["sleepAfterRun"]))
 
-    def looper_controller(self, case, api_list, index):
+    def looper_controller(self, case, api_list, step_n):
         """循环控制器"""
         if "type" in self.collector.looper and self.collector.looper["type"] == "WHILE":
             # while循环 且兼容之前只有for循环
@@ -149,23 +148,23 @@ class ApiTestStep:
             while self.collector.looper["timeout"] == 0 or (datetime.datetime.now() - loop_start_time).seconds * 1000 \
                     < self.collector.looper["timeout"]:     # timeout为0时可能会死循环 慎重选择
                 # 渲染循环控制控制器 每次循环都需要渲染
-                _looper = case._render_looper(self.collector.looper)
+                _looper = case.render_looper(self.collector.looper)
                 result, _ = LMAssert(_looper['assertion'], _looper['target'], _looper['expect']).compare()
                 if not result:
                     break
-                _api_list = api_list[index - 1: (index + _looper["num"] - 1)]
-                case._loop_execute(_api_list, api_list[index]["apiId"])
+                _api_list = api_list[step_n: (step_n + _looper["num"])]
+                case.loop_execute(_api_list, api_list[step_n]["apiId"])
         else:
             # 渲染循环控制控制器 for只需渲染一次
-            _looper = case._render_looper(self.collector.looper)
-            for i in range(_looper["times"]):  # 本次循环次数
-                self.context[_looper["indexName"]] = i + 1  # 给循环索引赋值第几次循环 母循环和子循环的索引名不应一样
-                _api_list = api_list[index - 1: (index + _looper["num"] - 1)]
-                case._loop_execute(_api_list, api_list[index]["apiId"])
+            _looper = case.render_looper(self.collector.looper)
+            for index in range(_looper["times"]):  # 本次循环次数
+                self.context[_looper["indexName"]] = index  # 给循环索引赋值第几次循环 母循环和子循环的索引名不应一样
+                _api_list = api_list[step_n: (step_n + _looper["num"])]
+                case.loop_execute(_api_list, api_list[step_n]["apiId"])
 
     def condition_controller(self, case):
         """条件控制器"""
-        _conditions = case._render_conditions(self.collector.conditions)
+        _conditions = case.render_conditions(self.collector.conditions)
         for condition in _conditions:
             try:
                 result, msg = LMAssert(condition['assertion'], condition['target'], condition['expect']).compare()
@@ -178,14 +177,24 @@ class ApiTestStep:
 
     def exec_script(self, code):
         """执行前后置脚本"""
+        def print(*args, sep=' ', end='\n', file=None, flush=False):
+            if file is None or file in (sys.stdout, sys.stderr):
+                file = self.test.stdout_buffer
+            self.print(*args, sep=sep, end=end, file=file, flush=flush)
 
-        def sys_put(name, val):
-            self.context[name] = val
+        def sys_put(name, val, ps=False):
+            if ps:  # 默认给关联参数赋值，只有多传入true时才会给公参赋值
+                self.params[name] = val
+            else:
+                self.context[name] = val
 
         def sys_get(name):
-            if name in self.params:  # 优先从公参中取值
+            if name in self.context:   # 优先从公参中取值
+                return self.context[name]
+            elif name in self.params:
                 return self.params[name]
-            return self.context[name]
+            else:
+                raise KeyError("不存在的公共参数或关联变量: {}".format(name))
 
         names = locals()
         names["res_code"] = self.status_code
@@ -198,6 +207,28 @@ class ApiTestStep:
         from tools.funclib.provider.lm_provider import CommonFunction
         exec(code)
 
+    def exec_sql(self, sql, case):
+        """执行前后置sql"""
+        if sql == "{}":
+            return
+        sql = json.loads(case.render_sql(sql))
+        if "host" not in sql["db"]:
+            raise KeyError("获取数据库连接信息失败 请检查配置")
+        conn = SQLConnect(**sql["db"])
+        if sql["sqlType"] != "query":
+            conn.exec(sql["sqlText"])
+        else:
+            results = conn.query(sql["sqlText"])
+            names = sql["names"].split(",")  # name数量可以比结果数量段，但不能长，不能会indexError
+            values = list(zip(*list(results)))
+            for j, n in enumerate(names):
+                if len(values) == 0:
+                    self.context[n] = []    # 如果查询结果为空 则变量保存为空数组
+                    continue
+                if j >= len(values):
+                    raise IndexError("变量数错误, 请检查变量数配置是否与查询语句一致，当前查询结果: <br>{}".format(results))
+                self.context[n] = values[j]  # 保存变量到变量空间
+
     def save_response(self, res):
         """保存响应结果"""
         self.status_code = res.status_code
@@ -209,7 +240,7 @@ class ApiTestStep:
         self.response_cookies = s[:-1]
         try:
             self.response_content = res.json()
-        except json.decoder.JSONDecodeError:
+        except Exception:
             self.response_content = res.text
 
     def extract_depend_params(self):
@@ -267,7 +298,7 @@ class ApiTestStep:
                     break
             final_result = all(results)
         else:
-            final_result, msg = LMAssert('相等', self.status_code, 200).compare()
+            final_result, msg = LMAssert('相等', self.status_code, str(200)).compare()
             check_messages.append(msg)
         self.assert_result = {
             'apiId': self.collector.apiId,
@@ -277,6 +308,8 @@ class ApiTestStep:
         }
 
     def pop_content_type(self):
+        if self.collector.others['headers'] is None:
+            return
         pop_key = None
         for key, value in self.collector.others['headers'].items():
             if key.lower() == 'content-type':

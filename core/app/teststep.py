@@ -1,25 +1,25 @@
 import sys
 from datetime import datetime
+from core.app.find_opt import *
 from core.assertion import LMAssert
-from core.web.find_opt import *
 
 
-class WebTestStep:
-    def __init__(self, test, driver, context, collector):
+class AppTestStep:
+    def __init__(self, test, device, context, collector):
         self.test = test
-        self.driver = driver
+        self.device = device
         self.context = context
         self.collector = collector
         self.result = None
 
     def execute(self):
         try:
-            self.test.debugLog('WEB操作[{}]开始'.format(self.collector.opt_name))
+            self.test.debugLog('APP操作[{}]开始'.format(self.collector.opt_name))
             opt_type = self.collector.opt_type
-            if opt_type == "browser":
-                func = find_browser_opt(self.collector.opt_name)
-            elif opt_type == "page":
-                func = find_page_opt(self.collector.opt_name)
+            if opt_type == "system":
+                func = find_system_opt(self.collector.opt_name)
+            elif opt_type == "view":
+                func = find_view_opt(self.collector.opt_name)
             elif opt_type == "condition":
                 func = find_condition_opt(self.collector.opt_name)
             elif opt_type == "assertion":
@@ -29,17 +29,18 @@ class WebTestStep:
             else:
                 func = find_scenario_opt(self.collector.opt_name)
             if func is None:
-                raise NotExistedWebOperation("未定义操作")
+                raise NotExistedAppOperation("未定义操作")
             opt_content = {
+                "system": self.collector.opt_system,
                 "trans": self.collector.opt_trans,
                 "code": self.collector.opt_code,
                 "element": self.collector.opt_element,
                 "data": self.collector.opt_data
             }
-            self.result = func(self.test, self.driver, **opt_content)
+            self.result = func(self.test, self.device, **opt_content)
             self.log_show()
         finally:
-            self.test.debugLog('WEB操作[{}]结束'.format(self.collector.opt_name))
+            self.test.debugLog('APP操作[{}]结束'.format(self.collector.opt_name))
 
     def looper_controller(self, case, opt_list, step_n):
         """循环控制器"""
@@ -76,7 +77,7 @@ class WebTestStep:
             else:
                 self.test.errorLog('[{}]断言失败: {}'.format(self.collector.opt_trans,
                                                              self.result[1]))
-                self.test.saveScreenShot(self.collector.opt_trans, self.driver.get_screenshot_as_png())
+                self.test.saveScreenShot(self.collector.opt_trans, self.device.screenshot(format='raw'))
                 if "continue" in self.collector.opt_data and self.collector.opt_data["continue"] is True:
                     try:
                         raise AssertionError(self.result[1])
@@ -123,5 +124,5 @@ class WebTestStep:
             self.test.debugLog(msg)
 
 
-class NotExistedWebOperation(Exception):
-    """未定义的WEB操作"""
+class NotExistedAppOperation(Exception):
+    """未定义的操作"""
