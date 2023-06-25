@@ -22,10 +22,10 @@ class ApiTestCase:
         setattr(test, 'test_case_name', self.case_message['caseName'])
         setattr(test, 'test_case_desc', self.case_message['comment'])
         self.functions = self.case_message['functions']
-        self.params = handle_params_data(self.case_message['params'])  # 设置自定义的参数
-        self.template = Template(self.test, self.context, self.functions, self.params)  # 构建执行模版
+        self.params = handle_params_data(self.case_message['params'])  # 导入公参
+        self.template = Template(self.context, self.functions, self.params)  # 构建执行模版
         self.json_path_parser = JsonPathParser()
-        self.comp = re.compile(r"\{\{.*?}}")
+        self.comp = re.compile(r"\{\{.*?\}\}")
 
     def execute(self):
         """用例执行入口函数"""
@@ -44,6 +44,7 @@ class ApiTestCase:
             index += 1
             # 定义收集器，并实例api用例信息
             collector = ApiRequestCollector()
+            # collector.collect(api_data)
             step = ApiTestStep(self.test, self.session, collector, self.context, self.params)
             # 循环控制器
             step.collector.collect_looper(api_data)
@@ -162,6 +163,11 @@ class ApiTestCase:
         if step.collector.relations is not None:
             self.template.init(step.collector.relations)
             step.collector.relations = self.template.render()
+        if step.collector.controller['token'] == '{{token}}':
+            self.template.init(step.collector.controller['token'])
+            render_value = self.template.render()
+            step.collector.controller['token'] = render_value
+            DebugLogger(step.collector.controller['token'])
 
     def render_json(self, step, data, name, pop_key=None):
         if data is None:
@@ -171,12 +177,15 @@ class ApiTestCase:
             render_value = self.template.render()
             self.template.request_body = render_value
         else:
+            # 将body按jsonpath的格式提取出来，以列表的形式
             for expr, value in get_json_relation(data, "body"):
+                # 如果value的中有{{index}}，将value存到模板里
                 if isinstance(value, str) and self.comp.search(value) is not None:
                     self.template.init(value)
                     render_value = self.template.render()
                     if name == "headers":
                         render_value = str(render_value)
+                    # 将data中的{{a}}数据更新为对应的变量
                     expression = self.json_path_parser.parse(expr)
                     expression.update(data, render_value)
                     if name == "body":
@@ -185,9 +194,9 @@ class ApiTestCase:
                         self.template.request_query = data
                     else:
                         self.template.request_headers = data
-        if name == "body":
+        if name == "body":  # 将others的'data'或'query'值替换成新的
             step.collector.others.setdefault(pop_key, self.template.request_body)
-        elif name == "query":
+        elif name == "query":  # 将others的'data'或'query'值替换成新的
             step.collector.others.setdefault("params", self.template.request_query)
         else:
             step.collector.others.setdefault("headers", self.template.request_headers)

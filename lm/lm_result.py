@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import datetime
-import io
 import sys
 import unittest
 

@@ -27,9 +27,10 @@ MAXBINSIZE = (MAXLINESIZE // 4) * 3
 PC_source = '100101'
 
 
-
 def ama_path_join(args):
-    return os.path.join(*[key + str(args[key]) for key in sorted(args.keys())])
+    # 有一处接口用到的顺序需要保持和获取到的一致，所以不能在这里调整顺序
+    # return os.path.join(*[key + str(args[key]) for key in sorted(args.keys())])
+    return os.path.join(*[key + value for key, value in args.items()])
 
 
 class Signature:
