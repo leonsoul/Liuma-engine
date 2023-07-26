@@ -95,7 +95,7 @@ class Browser(Operation):
             self.find_element(element).click()
             # 等待新窗口出现
             current_time = datetime.now()
-            while (datetime.now()-current_time).seconds < 60:
+            while (datetime.now() - current_time).seconds < 60:
                 if len(self.driver.window_handles) > len(current):
                     for window_handle in self.driver.window_handles:
                         if window_handle not in current:
@@ -187,7 +187,7 @@ class Browser(Operation):
             self.test.errorLog("无法执行delete cookies")
             raise e
 
-    def execute_script(self, script, arg:tuple):
+    def execute_script(self, script, arg: tuple):
         """执行脚本"""
         try:
             self.driver.execute_script(script, *arg)
@@ -198,7 +198,7 @@ class Browser(Operation):
             self.test.errorLog("无法执行execute script:%s" % script)
             raise e
 
-    def execute_async_script(self, script, arg:tuple):
+    def execute_async_script(self, script, arg: tuple):
         """执行异步脚本"""
         try:
             self.driver.execute_async_script(script, *arg)

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-import unittest, threading
+import threading
+import unittest
+
 from lm import lm_case, lm_result
 from lm.lm_log import ErrorLogger
-from lm.lm_config import LMConfig
 
 
 class LMRun(object):

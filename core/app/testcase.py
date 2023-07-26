@@ -89,7 +89,7 @@ class AppTestCase:
         self.template.init(looper)
         _looper = self.template.render()
         for name, param in _looper.items():
-            if name != "target" or name != "expect":    # 断言实际值不作数据处理
+            if name != "target" or name != "expect":  # 断言实际值不作数据处理
                 _looper[name] = handle_operation_data(param["type"], param["value"])
         if "times" in _looper:
             try:
@@ -115,4 +115,3 @@ class AppTestCase:
                     param_value = self.template.render()
                 data[name] = handle_operation_data(param["type"], param_value)
             step.collector.opt_data = data
-

@@ -181,11 +181,11 @@ class Page(Operation):
         try:
             ele = self.find_element(element)
             ActionChains(self.driver).drag_and_drop_by_offset(ele, x, y).perform()
-            self.test.debugLog("成功执行drag and drop to (%s, %s)" % (x,y))
+            self.test.debugLog("成功执行drag and drop to (%s, %s)" % (x, y))
         except NoSuchElementException as e:
             raise e
         except Exception as e:
-            self.test.errorLog("无法执行drag and drop to (%s, %s)" % (x,y))
+            self.test.errorLog("无法执行drag and drop to (%s, %s)" % (x, y))
             raise e
 
     def key_down(self, element, value):
@@ -224,11 +224,11 @@ class Page(Operation):
         """鼠标移动到坐标"""
         try:
             ActionChains(self.driver).move_by_offset(x, y).perform()
-            self.test.debugLog("成功执行move mouse to (%s, %s)" % (x,y))
+            self.test.debugLog("成功执行move mouse to (%s, %s)" % (x, y))
         except NoSuchElementException as e:
             raise e
         except Exception as e:
-            self.test.errorLog("无法执行move mouse to (%s, %s)" % (x,y))
+            self.test.errorLog("无法执行move mouse to (%s, %s)" % (x, y))
             raise e
 
     def move_to_element(self, element):
@@ -248,11 +248,11 @@ class Page(Operation):
         try:
             ele = self.find_element(element)
             ActionChains(self.driver).move_to_element_with_offset(ele, x, y).perform()
-            self.test.debugLog("成功执行move mouse to element with (%s, %s)" % (x,y))
+            self.test.debugLog("成功执行move mouse to element with (%s, %s)" % (x, y))
         except NoSuchElementException as e:
             raise e
         except Exception as e:
-            self.test.errorLog("无法执行move mouse to element with (%s, %s)" % (x,y))
+            self.test.errorLog("无法执行move mouse to element with (%s, %s)" % (x, y))
             raise e
 
     def release(self, element):

@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
+import datetime
 import io
 import os
-import datetime
-import sys
 import time
-import unittest
 import traceback
+import unittest
 from uuid import uuid1
+
 from core.api.testcase import ApiTestCase
-from core.web.testcase import WebTestCase
 from core.app.testcase import AppTestCase
+from core.web.testcase import WebTestCase
 from lm.lm_config import IMAGE_PATH, LMConfig
 
 
@@ -124,7 +124,7 @@ class LMCase(unittest.TestCase):
 
     def saveScreenShot(self, name, screen_shot):
         """保存截图"""
-        uuid = time.strftime("%Y%m%d") + "_" +str(uuid1())
+        uuid = time.strftime("%Y%m%d") + "_" + str(uuid1())
         task_id = getattr(self, "task_id")
         task_image_path = os.path.join(IMAGE_PATH, task_id)
         try:

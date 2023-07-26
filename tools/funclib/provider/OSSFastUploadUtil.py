@@ -17,6 +17,8 @@ from oss2 import SizedFileAdapter, determine_part_size
 from oss2.models import PartInfo
 
 config = AlltuuConfig()
+
+
 class oss_util:
     def __init__(self, OssKeyId, OssKeySecret, OssToken, EndPoint=config.endpoint, Bucket=config.bucket):
         if OssToken is not None:

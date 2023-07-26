@@ -23,7 +23,7 @@ class ApiTestCase:
         setattr(test, 'test_case_desc', self.case_message['comment'])
         self.functions = self.case_message['functions']
         self.params = handle_params_data(self.case_message['params'])  # 导入公参
-        self.template = Template(self.context, self.functions, self.params)  # 构建执行模版
+        self.template = Template(self.test, self.context, self.functions, self.params)  # 构建执行模版
         self.json_path_parser = JsonPathParser()
         self.comp = re.compile(r"\{\{.*?\}\}")
 
@@ -33,18 +33,12 @@ class ApiTestCase:
             raise RuntimeError("无法获取API相关数据, 请重试!!!")
         self.loop_execute(self.case_message['apiList'], "root")
 
-    def loop_execute(self, api_list, loop_id, index=0, step_n=0):
+    def loop_execute(self, api_list, loop_id, step_n=0):
         """循环执行"""
         while step_n < len(api_list):
             api_data = api_list[step_n]
             # 定义收集器
-        while index < len(api_list):
-            # 获得api用例信息
-            api_data = api_list[index]
-            index += 1
-            # 定义收集器，并实例api用例信息
             collector = ApiRequestCollector()
-            # collector.collect(api_data)
             step = ApiTestStep(self.test, self.session, collector, self.context, self.params)
             # 循环控制器
             step.collector.collect_looper(api_data)
@@ -62,8 +56,7 @@ class ApiTestCase:
                 result = step.condition_controller(self)
                 if result is not True:
                     self.test.updateTransStatus(3)  # 任意条件不满足 跳过执行
-                    self.test.debugLog(
-                        '[{}]接口条件控制器判断为否: {}'.format(api_data['apiId'], api_data['apiName'], result))
+                    self.test.debugLog('[{}]接口条件控制器判断为否: {}'.format(api_data['apiName'], result))
                     continue
             # 收集请求主体并执行
             step.collector.collect(api_data)
@@ -89,10 +82,10 @@ class ApiTestCase:
                 # 检查step的断言结果
                 if step.assert_result['result']:
                     self.test.debugLog('[{}]接口断言成功: {}'.format(step.collector.apiName,
-                                                                     dict2str(step.assert_result['checkMessages'])))
+                                                                   dict2str(step.assert_result['checkMessages'])))
                 else:
                     self.test.errorLog('[{}]接口断言失败: {}'.format(step.collector.apiName,
-                                                                     dict2str(step.assert_result['checkMessages'])))
+                                                                   dict2str(step.assert_result['checkMessages'])))
                     raise AssertionError(dict2str(step.assert_result['checkMessages']))
             except Exception as e:
                 error_info = sys.exc_info()
@@ -125,9 +118,7 @@ class ApiTestCase:
         return self.template.render()
 
     def render_content(self, step):
-        # 初始化模板，将收集到的路径传进去，加载文件，清空堆栈和map
         self.template.init(step.collector.path)
-
         step.collector.path = self.template.render()
         if step.collector.others.get('headers') is not None:
             headers = step.collector.others.pop('headers')

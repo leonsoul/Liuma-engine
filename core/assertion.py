@@ -6,6 +6,7 @@ import urllib
 
 from assertpy import assertpy
 
+
 class LMAssert:
     """断言"""
 
@@ -15,6 +16,7 @@ class LMAssert:
         self.expected_result = expected_result
 
     def compare(self):
+        global assFailMsg
         try:
             if self.comparator in ["equal", "equals", "相等", "字符相等"]:  # 等于
                 assFailMsg = '实际值({})与预期值({}) 字符相等，条件为否：'.format(self.actual_result,
@@ -176,7 +178,7 @@ class LMAssert:
             return False, assFailMsg + ex
         except TypeError as e:
             ex = str(e) + "method {}, expected_result {},actual {}".format(self.comparator, self.expected_result,
-                                                                  self.actual_result)
+                                                                           self.actual_result)
             return False, ex + assFailMsg
 
     @staticmethod

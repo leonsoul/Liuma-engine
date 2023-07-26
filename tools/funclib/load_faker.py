@@ -44,9 +44,6 @@ class CustomFaker(Faker):
                 reload(module)
             for value in module.__dict__.values():
                 if type(value) is type and BaseProvider in value.__bases__:
-                    if value.__name__ == "LiuMaProvider":
-                        # 将自定义的函数导入进来
-                        self._load_lm_func(value)
                     self.add_provider(value)
 
     def _load_lm_func(self):

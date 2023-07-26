@@ -127,7 +127,7 @@ class LMSetting(object):
             runTime = 2
         task_id = self.task["taskId"]
         max_thread = self.task["maxThread"]
-        queue.put("run_all_start--%s" % task_id) # 将当前队列加入提醒文案
+        queue.put("run_all_start--%s" % task_id)  # 将当前队列加入提醒文案
         for index in range(runTime):
             # 第一次全部运行，之后运行失败的用例
             if index == 0:  # 第一次运行 runTime 为1时，将所有的plan置为test_plan（执行plan）
@@ -182,15 +182,16 @@ class LMSetting(object):
 
 class LMSession(object):
     """API测试专用"""
+
     def __init__(self):
         self.session = Session()
 
 
 class LMDriver(object):
     """WEB测试专用"""
+
     def __init__(self):
         self.driver = None
         self.config = LMConfig()
         self.browser_opt = self.config.browser_opt
         self.browser_path = self.config.browser_path
-

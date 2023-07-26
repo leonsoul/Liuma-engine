@@ -45,6 +45,7 @@ class IniReader:
 
 class LMConfig(object):
     """"配置文件"""
+
     def __init__(self, path=CONFIG_PATH):
         reader = IniReader(path)
         self.url = reader.data("Platform", "url")
@@ -67,7 +68,6 @@ class LMConfig(object):
                 self.browser_path = os.path.join(BROWSER_PATH, reader.data("WebDriver", "linux-path"))
             else:
                 self.browser_path = os.path.join(BROWSER_PATH, reader.data("WebDriver", "path"))
-
 
 
 class AlltuuConfig(object):

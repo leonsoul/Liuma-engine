@@ -236,7 +236,7 @@ class LMApi(Api):
                 ErrorLogger("调用下载测试文件接口 发生错误 错误信息为：%s" % e)
             break
 
-    def upload_screen_shot(self,task_image_path, uuid, log_path):
+    def upload_screen_shot(self, task_image_path, uuid, log_path):
         """"上传执行截图"""
         url = self.url + "/openapi/engine/screenshot/upload"
         for index in range(2):

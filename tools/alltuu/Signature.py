@@ -1,6 +1,3 @@
-import hashlib
-import json
-
 import binascii
 import os
 import time
@@ -11,7 +8,6 @@ from urllib.parse import unquote
 from Cryptodome.Hash import SHA256
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Signature import PKCS1_v1_5
-import requests
 
 from lm.lm_config import AlltuuConfig
 
@@ -144,6 +140,7 @@ class Signature:
 
     @staticmethod
     def Encryption_args_map(args_map, std_args_map):
+        validate_map = {}
         if args_map is None:
             validate_map = dict(std_args_map)
         elif isinstance(args_map, dict):
@@ -185,12 +182,12 @@ class Signature:
         return '/{sign}/{time_stamp}/{file}'.format(sign=hl.hexdigest(), time_stamp=time_stamp, file=file_path)
 
 
-def decode_url(args_map):
-    args_map = args_map.replace('+', "%20")
-    str_list = []
-    for i in unquote(args_map).split('&'):
-        str_list.append(i.split('='))
-    return dict(str_list)
+# def decode_url(args_map):
+#     args_map = args_map.replace('+', "%20")
+#     str_list = []
+#     for i in unquote(args_map).split('&'):
+#         str_list.append(i.split('='))
+#     return dict(str_list)
 
 
 if __name__ == '__main__':
@@ -202,4 +199,4 @@ if __name__ == '__main__':
     # dict_map = dict(str_list)
     # print(dict_map)
     # print(Signature.sign_url_v4c('rest/v4c/fa', {"a": '123', 't': 123412312312}))
-    print(Signature.concatenating_url({'2':3,'1':1}))
+    print(Signature.concatenating_url({'2': 3, '1': 1}))

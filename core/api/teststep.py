@@ -1,18 +1,17 @@
 import datetime
+import json
 import sys
 from collections import OrderedDict
+from copy import deepcopy
 from time import sleep
 
 from requests import request, Session
-from copy import deepcopy
-import json
 
 from core.assertion import LMAssert
 from lm.lm_log import DebugLogger
 from tools.alltuu.Signature import Signature
 from tools.utils.sql import SQLConnect
 from tools.utils.utils import extract, ExtractValueError, url_join
-from urllib.parse import urlencode
 
 REQUEST_CNAME_MAP = {
     'headers': '请求头',
@@ -53,7 +52,8 @@ class ApiTestStep:
                     if key == 'files':
                         if isinstance(value, dict):
                             request_log += '{}: {}<br>'.format(c_key,
-                                                               ["文件长度%s: %s" % (k, len(v)) for k, v in value.items()])
+                                                               ["文件长度%s: %s" % (k, len(v)) for k, v in
+                                                                value.items()])
                         if isinstance(value, list):
                             request_log += '{}: {}<br>'.format(c_key, [i[1][0] for i in value])
                     elif c_key == '请求体':
@@ -78,12 +78,18 @@ class ApiTestStep:
                 if 'data' in self.collector.others:
                     args_map.update(self.collector.others['data'])
                 # 只是简单的加密
-                signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'], args_map, no_sign_date=self.collector.private['no_sign_data'],source=self.collector.controller['From'])
+                signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'], args_map,
+                                                                      no_sign_date=self.collector.private[
+                                                                          'no_sign_data'],
+                                                                      source=self.collector.controller['From'])
                 url = url + '/' + 'v' + signature_string
             elif self.collector.controller['encryption'].lower() == "crm":
                 # 如果是crm加密，就走crm那一套
                 signature_string, signature = Signature().sign_url_v4(self.collector.controller['token'],
-                                                                      self.collector.others['data'], no_sign_date=self.collector.private['no_sign_data'],source=self.collector.controller['From'])
+                                                                      self.collector.others['data'],
+                                                                      no_sign_date=self.collector.private[
+                                                                          'no_sign_data'],
+                                                                      source=self.collector.controller['From'])
                 self.collector.others['data'].updata({signature: signature})
             elif self.collector.controller['encryption'].lower() == "live":
                 # 如果是直播相册加密
@@ -98,7 +104,8 @@ class ApiTestStep:
                 self.test.debugLog("请求前等待%sS" % int(self.collector.controller["sleepBeforeRun"]))
             start_time = datetime.datetime.now()
             # 判断是否使用session
-            if self.collector.controller["useSession"].lower() == 'true' and self.collector.controller["saveSession"].lower() == "true":
+            if self.collector.controller["useSession"].lower() == 'true' and self.collector.controller[
+                "saveSession"].lower() == "true":
                 res = self.session.session.request(self.collector.method, url, **self.collector.others)
             elif self.collector.controller["useSession"].lower() == "true":
                 session = deepcopy(self.session.session)
@@ -146,7 +153,7 @@ class ApiTestStep:
             # while循环 且兼容之前只有for循环
             loop_start_time = datetime.datetime.now()
             while self.collector.looper["timeout"] == 0 or (datetime.datetime.now() - loop_start_time).seconds * 1000 \
-                    < self.collector.looper["timeout"]:     # timeout为0时可能会死循环 慎重选择
+                    < self.collector.looper["timeout"]:  # timeout为0时可能会死循环 慎重选择
                 # 渲染循环控制控制器 每次循环都需要渲染
                 _looper = case.render_looper(self.collector.looper)
                 result, _ = LMAssert(_looper['assertion'], _looper['target'], _looper['expect']).compare()
@@ -177,6 +184,7 @@ class ApiTestStep:
 
     def exec_script(self, code):
         """执行前后置脚本"""
+
         def print(*args, sep=' ', end='\n', file=None, flush=False):
             if file is None or file in (sys.stdout, sys.stderr):
                 file = self.test.stdout_buffer
@@ -189,7 +197,7 @@ class ApiTestStep:
                 self.context[name] = val
 
         def sys_get(name):
-            if name in self.context:   # 优先从公参中取值
+            if name in self.context:  # 优先从公参中取值
                 return self.context[name]
             elif name in self.params:
                 return self.params[name]
@@ -204,7 +212,6 @@ class ApiTestStep:
         names["res_bytes"] = self.response_content_bytes
         names["send_body"] = self.collector.others
         # 将通用函数导入进来
-        from tools.funclib.provider.lm_provider import CommonFunction
         exec(code)
 
     def exec_sql(self, sql, case):
@@ -223,10 +230,11 @@ class ApiTestStep:
             values = list(zip(*list(results)))
             for j, n in enumerate(names):
                 if len(values) == 0:
-                    self.context[n] = []    # 如果查询结果为空 则变量保存为空数组
+                    self.context[n] = []  # 如果查询结果为空 则变量保存为空数组
                     continue
                 if j >= len(values):
-                    raise IndexError("变量数错误, 请检查变量数配置是否与查询语句一致，当前查询结果: <br>{}".format(results))
+                    raise IndexError(
+                        "变量数错误, 请检查变量数配置是否与查询语句一致，当前查询结果: <br>{}".format(results))
                 self.context[n] = values[j]  # 保存变量到变量空间
 
     def save_response(self, res):
@@ -357,7 +365,7 @@ if __name__ == '__main__':
     print(
         oss_util(d['AccessKeyId'], d['AccessKeySecret'], d['SecurityToken']).upload_Url_selection('tmp/USER230593/', '',
                                                                                                   '/Users/liujin/Desktop/01682a5eef271ba801215aa0a8445d.jpg@1280w_1l_0o_100sh-opq2510515.jpg')
-        )
+    )
     # import datetime
     # import hashlib
     # key = 'CSDtMH20ItRxAfEMauZuyLuA35Dd72V8'

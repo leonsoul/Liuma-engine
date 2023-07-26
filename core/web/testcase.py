@@ -133,7 +133,7 @@ class WebTestCase:
         self.template.init(looper)
         _looper = self.template.render()
         for name, param in _looper.items():
-            if name != "target" or name != "expect":    # 断言实际值不作数据处理
+            if name != "target" or name != "expect":  # 断言实际值不作数据处理
                 _looper[name] = handle_operation_data(param["type"], param["value"])
         if "times" in _looper:
             try:
@@ -161,42 +161,3 @@ class WebTestCase:
                     param_value = self.template.render()
                 data[name] = handle_operation_data(param["type"], param_value)
             step.collector.opt_data = data
-
-    def _assert_solve(self, step):
-        if step.collector.opt_type == "assertion":
-            if step.result[0]:
-                self.test.debugLog('[{}][{}]断言成功: {}'.format(step.collector.id,
-                                                             step.collector.opt_name,
-                                                             step.result[1]))
-            else:
-                self.test.errorLog('[{}][{}]断言失败: {}'.format(step.collector.id,
-                                                             step.collector.opt_name,
-                                                             step.result[1]))
-                self.test.saveScreenShot(step.collector.opt_trans, self.driver.get_screenshot_as_png())
-                if "continue" in step.collector.opt_data and step.collector.opt_data["continue"] is True:
-                    try:
-                        raise AssertionError(step.result[1])
-                    except AssertionError:
-                        error_info = sys.exc_info()
-                        self.test.recordFailStatus(error_info)
-                else:
-                    raise AssertionError(step.result[1])
-
-    def _condition_solve(self, step, current):
-        if step.collector.opt_type == "condition":
-            offset_true = step.collector.opt_data["true"]
-            if not isinstance(offset_true, int):
-                offset_true = 0
-            offset_false = step.collector.opt_data["false"]
-            if not isinstance(offset_false, int):
-                offset_false = 0
-            if step.result[0]:
-                self.test.debugLog('[{}][{}]判断成功, 执行成功分支: {}'.format(step.collector.id,
-                                                                     step.collector.opt_name,
-                                                                     step.result[1]))
-                self.skip_opts.extend([current + i for i in range(offset_true + 1, offset_true + offset_false + 1)])
-            else:
-                self.test.errorLog('[{}][{}]判断失败, 执行失败分支: {}'.format(step.collector.id,
-                                                                     step.collector.opt_name,
-                                                                     step.result[1]))
-                self.skip_opts.extend([current + i for i in range(1, offset_true + 1)])

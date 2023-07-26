@@ -32,4 +32,3 @@ class LMUpload(object):
             os.remove(os.path.join(task_image_path, file))
         except:
             pass
-

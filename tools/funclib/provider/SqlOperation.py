@@ -62,6 +62,7 @@ class SqlOperation:
         finally:
             self.db.close()
 
+
 # SQL = SqlOperation()
 if __name__ == '__main__':
     sql = "SELECT goods_id FROM alltuu.at_goods_sale_detail"
@@ -70,4 +71,3 @@ if __name__ == '__main__':
     for i in re_sql:
         re.append(i[0])
     print(re)
-

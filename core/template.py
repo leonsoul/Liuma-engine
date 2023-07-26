@@ -12,7 +12,8 @@ from tools.utils.utils import extract_by_jsonpath, quotation_marks
 
 class Template:
 
-    def __init__(self, test, context, functions, params, variable_start_string='{{', variable_end_string='}}', function_prefix='@', param_prefix='$'):
+    def __init__(self, test, context, functions, params, variable_start_string='{{', variable_end_string='}}',
+                 function_prefix='@', param_prefix='$'):
         self.param_prefix = param_prefix
         self.data = None
         self.context = context  # 关联参数
@@ -88,7 +89,7 @@ class Template:
                         index = int(keys[-1][:-1])
                     except:
                         index = None
-                if key in self.context: # 优先从关联参数中取
+                if key in self.context:  # 优先从关联参数中取
                     if index is None:
                         value = self.context.get(key)
                     else:
@@ -230,7 +231,8 @@ class Template:
                                 result.append(argList[j])
                                 j += 1
                             else:
-                                raise SplitFunctionError('函数{}第{}个参数类型错误: {}'.format(name, i + 1, type_list[i]))
+                                raise SplitFunctionError(
+                                    '函数{}第{}个参数类型错误: {}'.format(name, i + 1, type_list[i]))
             return result
         else:
             raise SplitFunctionError('函数错误: {}'.format(statement))

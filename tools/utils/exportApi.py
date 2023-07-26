@@ -19,6 +19,7 @@ from docx.table import _Cell, Table
 from docx.oxml.table import CT_Tbl
 from docx.oxml.text.paragraph import CT_P
 from docx.text.paragraph import Paragraph
+
 file_path = '/Users/liujin/Desktop/脚本/导出接口/Piufoto.docx'
 mysql_config = dict(host='1.117.81.152', user='liuma', passwd='YcSewyTdBeM8SWLz')
 file = docx.Document(file_path)  # 导出的api文件
@@ -132,7 +133,7 @@ def analyze_case(tmp_case: Api_case):
     else:
         tmp_case.domain, tmp_case.url = tmp_case.url.split('/', 1)
         tmp_case.url = '/' + tmp_case.url
-        tmp_case.url=tmp_case.url.replace(' ', '')
+        tmp_case.url = tmp_case.url.replace(' ', '')
     tmp_case.domain = re.sub('.(?:alltuu|guituu).com', '', tmp_case.domain)
     # 将请求方式改为大写
     tmp_case.request_method = tmp_case.request_method.upper()

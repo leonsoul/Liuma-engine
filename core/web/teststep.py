@@ -57,14 +57,14 @@ class WebTestStep:
                 result, _ = LMAssert(_looper['assertion'], _looper['target'], _looper['expect']).compare()
                 if not result:
                     break
-                _opt_list = opt_list[step_n+1: (step_n + _looper["steps"]+1)]   # 循环操作本身不参与循环 不然死循环
+                _opt_list = opt_list[step_n + 1: (step_n + _looper["steps"] + 1)]  # 循环操作本身不参与循环 不然死循环
                 case.loop_execute(_opt_list, [])
             return steps
         else:
-            _looper = case.render_looper(self.collector.opt_data) # 渲染循环控制控制器 for只需渲染一次
+            _looper = case.render_looper(self.collector.opt_data)  # 渲染循环控制控制器 for只需渲染一次
             for index in range(_looper["times"]):  # 本次循环次数
                 self.context[_looper["indexName"]] = index  # 给循环索引赋值第几次循环 母循环和子循环的索引名不应一样
-                _opt_list = opt_list[step_n+1: (step_n + _looper["steps"]+1)]
+                _opt_list = opt_list[step_n + 1: (step_n + _looper["steps"] + 1)]
                 case.loop_execute(_opt_list, [])
             return _looper["steps"]
 
@@ -96,11 +96,11 @@ class WebTestStep:
                 offset_false = 0
             if self.result[0]:
                 self.test.debugLog('[{}]判断成功, 执行成功分支: {}'.format(self.collector.opt_name,
-                                                                        self.result[1]))
+                                                                           self.result[1]))
                 return [current + i for i in range(offset_true + 1, offset_true + offset_false + 1)]
             else:
                 self.test.errorLog('[{}]判断失败, 执行失败分支: {}'.format(self.collector.opt_name,
-                                                                        self.result[1]))
+                                                                           self.result[1]))
                 return [current + i for i in range(1, offset_true + 1)]
         return []
 

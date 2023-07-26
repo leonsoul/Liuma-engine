@@ -119,6 +119,7 @@ def find_page_opt(operate_name: str):
             if name == operate_name:
                 nonlocal function
                 function = func
+
         return back
 
     @keywords("切换frame")
@@ -183,7 +184,8 @@ def find_page_opt(operate_name: str):
 
     @keywords("偏移拖拽")
     def drag_and_drop_by_offset(test, driver, **kwargs):
-        Page(test, driver).drag_and_drop_by_offset(kwargs["element"]["element"], kwargs["data"]["x"], kwargs["data"]["y"])
+        Page(test, driver).drag_and_drop_by_offset(kwargs["element"]["element"], kwargs["data"]["x"],
+                                                   kwargs["data"]["y"])
 
     @keywords("按下键位")
     def key_down(test, driver, **kwargs):
@@ -203,7 +205,8 @@ def find_page_opt(operate_name: str):
 
     @keywords("鼠标元素内偏移")
     def move_to_element_with_offset(test, driver, **kwargs):
-        Page(test, driver).move_to_element_with_offset(kwargs["element"]["element"], kwargs["data"]["x"], kwargs["data"]["y"])
+        Page(test, driver).move_to_element_with_offset(kwargs["element"]["element"], kwargs["data"]["x"],
+                                                       kwargs["data"]["y"])
 
     @keywords("释放点击保持状态")
     def release(test, driver, **kwargs):
@@ -416,7 +419,8 @@ def find_relation_opt(operate_name: str):
 
     @keywords("提取元素属性")
     def get_ele_attribute(test, driver, **kwargs):
-        Relation(test, driver).get_ele_attribute(kwargs["element"]["element"], kwargs["data"]["name"], kwargs["data"]["save_name"])
+        Relation(test, driver).get_ele_attribute(kwargs["element"]["element"], kwargs["data"]["name"],
+                                                 kwargs["data"]["save_name"])
 
     @keywords("提取元素css样式")
     def get_ele_css(test, driver, **kwargs):
@@ -553,7 +557,8 @@ def find_condition_opt(operate_name: str):
 
     @keywords("判断元素是否显示")
     def condition_ele_displayed(test, driver, **kwargs):
-        return Condition(test, driver).condition_ele_displayed(kwargs["element"]["element"], kwargs["data"]["assertion"],
+        return Condition(test, driver).condition_ele_displayed(kwargs["element"]["element"],
+                                                               kwargs["data"]["assertion"],
                                                                kwargs["data"]["expect"])
 
     @keywords("判断元素css样式")

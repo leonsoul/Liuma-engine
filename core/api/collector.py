@@ -75,7 +75,7 @@ class ApiRequestCollector:
                 result = "{%s}" % field
                 if field in api_data['rest']:
                     result = api_data["rest"][field]  # 将path中的参数替换成rest
-                if "#{%s}" % field in path: # 兼容老版本#{name}
+                if "#{%s}" % field in path:  # 兼容老版本#{name}
                     path = path.replace("#{%s}" % field, result)
                 else:
                     path = path.replace("{%s}" % field, result)
@@ -127,7 +127,6 @@ class ApiRequestCollector:
         if self.others['headers'] is None or self.others['headers'] == {"": ""}:
             self.others['headers'] = {'Content-Type': 'application/json;charset=UTF-8'}
 
-
         # elif 'content-type' not in [key.lower() for key in self.others['headers'].keys()]:
         #     self.others['headers']['Content-Type'] = 'application/json;charset=UTF-8'
         # else:
@@ -168,7 +167,7 @@ class ApiRequestCollector:
         elif body["type"] in ("form-urlencoded", "form-data"):
             # cxy新增 如果请求体是json格式的话，那么请求头中的headers为application/x-www-form-urlencoded;charset=UTF-8
             self.others['headers'].update({'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'})
-            body_data, body_file, no_sign_data = handle_form_data(body["form"]) # no_sign_data 不参与签名的参数
+            body_data, body_file, no_sign_data = handle_form_data(body["form"])  # no_sign_data 不参与签名的参数
             self.private["no_sign_data"] = no_sign_data
             if len(body_data) > 0:
                 DebugLogger('collect_body:{}'.format(str(body_data)))

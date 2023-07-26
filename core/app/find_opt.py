@@ -91,6 +91,7 @@ def find_view_opt(operate_name: str):
             if name == operate_name:
                 nonlocal function
                 function = func
+
         return back
 
     @keywords("单击")
@@ -151,7 +152,7 @@ def find_view_opt(operate_name: str):
 
     @keywords("拖动到元素")
     def drag_to_ele(test, device, **kwargs):
-        View(test, device).drag_to_ele(kwargs["element"]["startElement"],kwargs["element"]["endElement"])
+        View(test, device).drag_to_ele(kwargs["element"]["startElement"], kwargs["element"]["endElement"])
 
     @keywords("拖动到坐标")
     def drag_to_coord(test, device, **kwargs):
@@ -279,7 +280,8 @@ def find_relation_opt(operate_name: str):
 
     @keywords("提取元素位置")
     def get_ele_center(test, device, **kwargs):
-        Relation(test, device).get_ele_center(kwargs["system"], kwargs["element"]["element"], kwargs["data"]["save_name"])
+        Relation(test, device).get_ele_center(kwargs["system"], kwargs["element"]["element"],
+                                              kwargs["data"]["save_name"])
 
     @keywords("提取元素X坐标")
     def get_ele_x(test, device, **kwargs):
@@ -326,8 +328,9 @@ def find_condition_opt(operate_name: str):
 
     @keywords("判断元素属性")
     def condition_ele_attribute(test, device, **kwargs):
-        return Condition(test, device).condition_ele_attribute(kwargs["element"]["element"], kwargs["data"]["attribute"],
-                                                            kwargs["data"]["assertion"], kwargs["data"]["expect"])
+        return Condition(test, device).condition_ele_attribute(kwargs["element"]["element"],
+                                                               kwargs["data"]["attribute"],
+                                                               kwargs["data"]["assertion"], kwargs["data"]["expect"])
 
     @keywords("判断元素位置")
     def condition_ele_center(test, device, **kwargs):
