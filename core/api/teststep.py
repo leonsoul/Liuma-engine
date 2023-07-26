@@ -62,6 +62,10 @@ class ApiTestStep:
                         request_log += '{}: {}<br>'.format(c_key, log_msg(value))
             # 如果是x-www-form-urlencoded 格式，字段中有使用list或dict会报错，但是我们在系统中都会使用字符串代替，所以这段代码先注释掉了
             self.test.debugLog(request_log[:-4])
+            # if self.collector.body_type == "form-urlencoded" and 'data' in self.collector.others:
+            #     self.collector.others['data'] = urlencode(self.collector.others['data'])
+            if self.collector.body_type in ("text", "xml", "html") and 'data' in self.collector.others:
+                self.collector.others['data'] = str(self.collector.others['data']).encode("utf-8")
             if 'files' in self.collector.others and self.collector.others['files'] is not None:
                 self.pop_content_type()
             url = url_join(self.collector.url, self.collector.path)
@@ -298,7 +302,7 @@ class ApiTestStep:
                     break
             final_result = all(results)
         else:
-            final_result, msg = LMAssert('相等', self.status_code, str(200)).compare()
+            final_result, msg = LMAssert('相等', str(self.status_code), str(200)).compare()
             check_messages.append(msg)
         self.assert_result = {
             'apiId': self.collector.apiId,

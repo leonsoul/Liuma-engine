@@ -169,7 +169,7 @@ class LiuMaProvider(BaseProvider):
         return reduce(lambda x, y: x + y, lazy_pinyin(cname))
 
     @staticmethod
-    def substing(s, start: int = 0, end: int = -1):
+    def substing(s, start: int=0, end: int=-1):
         return s[start:end]
 
     @staticmethod

@@ -61,7 +61,7 @@ class Browser(Operation):
     def switch_to_window(self, window):
         """切换窗口"""
         try:
-            print(self.driver.window_handles)
+            # print(self.driver.window_handles)
             self.driver.switch_to.window(self.driver.window_handles[-1])
             self.test.debugLog("成功执行switch window")
         except Exception as e:
