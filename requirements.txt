@@ -1,6 +1,6 @@
 assertpy==1.1
 certifi==2023.7.22
-chardet==5.1.0
+chardet== 3.0.4
 decorator==5.0.5
 Faker==19.2.0
 idna==3.4
