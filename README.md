@@ -6,7 +6,7 @@
     __tools:基础工具__<br>
 <br>
 二、环境依赖<br><br>
-    环境依赖: Python3.6+  Chrome以及对应的Chromedriver<br>
+    环境依赖: Python3.6+  Chrome以及对应的Chromedriver(详见目录/browser/chrome_setting.md)<br>
 <br> 
 三、使用步骤<br><br>
     1. git下载项目代码到本地<br> 
