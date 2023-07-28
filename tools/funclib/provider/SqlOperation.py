@@ -3,6 +3,8 @@
 # @Function: 数据库的操作
 # @Author: liujin
 # @Time: 2023/4/23 18:18
+import traceback
+
 from lm.lm_config import AlltuuConfig
 
 config = AlltuuConfig()
@@ -35,6 +37,7 @@ class SqlOperation:
             # 提交
             self.db.commit()
         except Exception as e:
+            traceback.print_exc()
             # 错误回滚
             self.db.rollback()
         finally:
