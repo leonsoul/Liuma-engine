@@ -61,7 +61,7 @@ class ApiTestStep:
                     else:
                         request_log += '{}: {}<br>'.format(c_key, log_msg(value))
             # 如果是x-www-form-urlencoded 格式，字段中有使用list或dict会报错，但是我们在系统中都会使用字符串代替，所以这段代码先注释掉了
-            self.test.debugLog(request_log[:-4])
+            # self.test.debugLog(request_log[:-4])
             # if self.collector.body_type == "form-urlencoded" and 'data' in self.collector.others:
             #     self.collector.others['data'] = urlencode(self.collector.others['data'])
             if self.collector.body_type in ("text", "xml", "html") and 'data' in self.collector.others:
