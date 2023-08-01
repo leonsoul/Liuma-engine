@@ -147,7 +147,7 @@ class Signature:
             validate_map = dict(args_map, **std_args_map)
         # 把所有参数按照参数名称进行字典序升序排序
         items = sorted(validate_map.items())
-        validate_string_array = [value for key, value in items]
+        validate_string_array = [str(value) for key, value in items]
         string_to_be_signatures = "/"
         string_to_be_signatures += "/".join(validate_string_array)
         # 对签名字符串进行md5签名
