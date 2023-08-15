@@ -6,6 +6,7 @@ from copy import deepcopy
 from time import sleep
 
 from requests import request, Session
+import re
 
 from core.assertion import LMAssert
 from lm.lm_log import DebugLogger
@@ -61,7 +62,7 @@ class ApiTestStep:
                     else:
                         request_log += '{}: {}<br>'.format(c_key, log_msg(value))
             # 如果是x-www-form-urlencoded 格式，字段中有使用list或dict会报错，但是我们在系统中都会使用字符串代替，所以这段代码先注释掉了
-            # self.test.debugLog(request_log[:-4])
+            self.test.debugLog(request_log[:-4])
             # if self.collector.body_type == "form-urlencoded" and 'data' in self.collector.others:
             #     self.collector.others['data'] = urlencode(self.collector.others['data'])
             if self.collector.body_type in ("text", "xml", "html") and 'data' in self.collector.others:
@@ -230,7 +231,7 @@ class ApiTestStep:
             conn.exec(sql["sqlText"])
         else:
             results = conn.query(sql["sqlText"])
-            names = sql["names"].split(",")  # name数量可以比结果数量段，但不能长，不能会indexError
+            names = [value.strip() for value in re.split("[,，]", sql["names"])]  # name数量可以比结果数量段，但不能长，不能会indexError
             values = list(zip(*list(results)))
             for j, n in enumerate(names):
                 if len(values) == 0:
@@ -239,6 +240,11 @@ class ApiTestStep:
                 if j >= len(values):
                     raise IndexError(
                         "变量数错误, 请检查变量数配置是否与查询语句一致，当前查询结果: <br>{}".format(results))
+                if n == '':  # 如果变量传进来是空的话
+                    raise ValueError(
+                        "变量名为空, 请检查变量数配置是否与查询语句一致，当前查询结果: <br>{}，当前传入的变量名为{}".format(results, sql["names"]))
+                elif len(values[j]) == 1:  # 如果只查询一个值的话，就直接返回这个值，不需要再处理
+                    values[j] = values[j][0]
                 self.context[n] = values[j]  # 保存变量到变量空间
 
     def save_response(self, res):
