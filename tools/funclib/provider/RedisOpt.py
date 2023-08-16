@@ -18,13 +18,19 @@ class MRedis:
     def query(self, key):
         return self.__r.get(key)
 
+    def set(self, key, value):
+        self.__r.set(key, value)
+        self.__r.expire(key, 600)
+        return True
+
 
 if __name__ == '__main__':
     a = MRedis('1')
-    res = a.query('abcqweroiu@haha.com_6')
-    print(type(res))
-    if isinstance(res, bytes):
-        print(True)
-    else:
-        print(False)
+    a.set('chenxinyu', '123456')
+    # res = a.query('abcqweroiu@haha.com_6')
+    # print(type(res))
+    # if isinstance(res, bytes):
+    #     print(True)
+    # else:
+    #     print(False)
     # print(int())

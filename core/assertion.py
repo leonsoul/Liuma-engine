@@ -5,6 +5,7 @@ import ast
 import urllib
 
 from assertpy import assertpy
+import json
 
 
 class LMAssert:
@@ -236,21 +237,22 @@ class LMAssert:
     @staticmethod
     def list2str(value):
         """利用json.dumps将list转成str格式，格式形式与java的JSON.STRINGIFY一致"""
-        import json
         if not isinstance(value, list):
             return value
         return json.dumps(value, separators=(',', ':'))
 
     @staticmethod
     def str2dict(value):
+        """将字符串转为字典格式"""
         if type(value) == dict or type(value) == int or type(value) == float:
             return value
         if value is None or len(value) == 0:
             return None
         value_dict = {}
         if value.startswith('{') and value.endswith('}'):
-            for item in value[1:-1].split(','):
-                value_dict = ast.literal_eval(value)
+            value_dict = json.loads(value)
+            # for item in value[1:-1].split(','):
+            #     value_dict = ast.literal_eval(value)
             return value_dict
         else:
             return value
