@@ -1,9 +1,7 @@
-# import pymssql as mssql
+import pymssql as mssql
 import pymysql as mysql
-
-
-# import psycopg2 as pgsql
-# import cx_Oracle as oracle
+import psycopg2 as pgsql
+import cx_Oracle as oracle
 
 
 class SQLConnect:
@@ -22,14 +20,18 @@ class SQLConnect:
         if self.tpz == "mysql":
             self.conn = mysql.connect(host=self.host, user=self.user,
                                       password=self.pwd, database=self.db, port=self.port, charset='utf8')
-        # elif self.tpz == "mssql":
-        #     self.conn = mssql.connect(server=self.host, user=self.user,
-        #                               password=self.pwd, database=self.db, port=self.port, charset='utf8')
-        # elif self.tpz == "pgsql":
-        #     self.conn = pgsql.connect(host=self.host, user=self.user,
-        #                               password=self.pwd, database=self.db, port=self.port)
-        # elif self.tpz == "oracle":
-        #     self.conn = oracle.connect(self.user, self.pwd, f"{self.host}:{self.port}/{self.db}")
+        elif self.tpz == "mssql":
+            self.conn = mssql.connect(server=self.host, user=self.user,
+                                      password=self.pwd, database=self.db, port=self.port, charset='utf8')
+        elif self.tpz == "pgsql":
+            self.conn = pgsql.connect(host=self.host, user=self.user,
+                                      password=self.pwd, database=self.db, port=self.port)
+        elif self.tpz == "oracle":
+            try:
+                self.conn = oracle.connect(self.user, self.pwd, f"{self.host}:{self.port}/{self.db}")
+            except:
+                sn = oracle.makedsn(self.host, self.port, sid=self.db)
+                self.conn = oracle.connect(self.user, self.pwd, sn)
         else:
             raise TypeError("不支持的数据库类型")
         cur = self.conn.cursor()
