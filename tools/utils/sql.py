@@ -1,7 +1,6 @@
 # import pymssql as mssql
 import pymysql as mysql
 
-
 # import psycopg2 as pgsql
 # import cx_Oracle as oracle
 
