@@ -154,7 +154,7 @@ class ApiTestCase:
         if step.collector.relations is not None:
             self.template.init(step.collector.relations)
             step.collector.relations = self.template.render()
-        if step.collector.controller['token'] == '{{token}}':
+        if step.collector.controller['token']:
             self.template.init(step.collector.controller['token'])
             render_value = self.template.render()
             step.collector.controller['token'] = render_value

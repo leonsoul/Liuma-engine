@@ -30,6 +30,7 @@ def extract_by_regex(data: (dict, str), pattern: str):
 
 
 def quotation_marks(s):
+    # 前引号, 先判断转义的，在判断单个引号
     if s[0] in ["'", '"', b'\xe2\x80\x98'.decode('utf-8'), b'\xe2\x80\x99'.decode('utf-8'),
                 b'\xe2\x80\x9c'.decode('utf-8'), b'\xe2\x80\x9d'.decode('utf-8')]:
         before = 1
