@@ -260,7 +260,7 @@ class LMAssert:
     @staticmethod
     def to_str(value):
         if type(value) == int or type(value) == float:
-            return value
+            return str(value)
         if value is None or len(value) == 0:
             return ""
         if type(value) == str:
