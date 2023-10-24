@@ -288,8 +288,14 @@ class ApiTestStep:
                     value = extract(items['method'], data, items['expression'])
                 key = items['name']
                 # 先将所有的关联取值都置为string
-                self.context[key] = str(value)
-                # self.context[key] = value
+                if isinstance(value, int):
+                    self.context[key] = str(value)
+                elif isinstance(value, float):
+                    self.context[key] = str(value)
+                elif isinstance(value, list):
+                    self.context[key] = json.dumps(value, separators=(',', ':'))
+                else:
+                    self.context[key] = value
 
     def check(self):
         """断言"""
