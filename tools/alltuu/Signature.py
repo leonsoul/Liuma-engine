@@ -63,11 +63,13 @@ class Signature:
             for del_item in no_sign_date:
                 del args_map[del_item]
         # 如果参数中存在v，那就将接口的版本改为对应的v  -- 应为有一个接口中存在v影响到了
-        if 'v' in args_map:
-            api_v = args_map['v']
-            del args_map['v']
-        else:
-            api_v = '0'
+        api_v = "0"
+        if "v" in args_map:
+            api_v = args_map["v"]
+            del args_map["v"]
+        if "version" in args_map:
+            api_v = args_map["version"]
+            del args_map["version"]
         timestamp = str(int(time.time() * 1000))  # 请求发起时间戳
         std_args_map = {"from": source, "timestamp": timestamp, "token": token, "version": api_v}
         # 把标准的四个参数组成的map和非标准参数args_map合并成一个map, 用来进行签名
