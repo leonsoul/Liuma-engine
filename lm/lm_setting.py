@@ -30,7 +30,7 @@ class LMSetting(object):
             return None
         else:
             file_path = os.path.join(self.data_path, str(self.task["taskId"]) + ".zip")
-            with open(file_path, 'wb+') as f:
+            with open(file_path, "wb+") as f:
                 for chunk in file.iter_content(chunk_size=1024):
                     if chunk:
                         f.write(chunk)
@@ -41,7 +41,7 @@ class LMSetting(object):
     def file_unzip(self, file_path):
         r = zipfile.is_zipfile(file_path)
         if r:
-            with zipfile.ZipFile(file_path, 'r') as fz:
+            with zipfile.ZipFile(file_path, "r") as fz:
                 for file in fz.namelist():
                     fz.extract(file, self.data_path)
         os.remove(file_path)
@@ -54,7 +54,7 @@ class LMSetting(object):
         """
         # 初始化测试计划
         test_plan = {}
-        if self.task["taskType"] != 'debug':
+        if self.task["taskType"] != "debug":
             file_path = self.data_pull()
             if file_path is not None:
                 self.file_unzip(file_path)
@@ -64,7 +64,7 @@ class LMSetting(object):
                 driver = {
                     "browser_opt": self.config.browser_opt,
                     "browser_path": self.config.browser_path,
-                    "driver": None
+                    "driver": None,
                 }
                 session = Session()
                 context = dict()
@@ -77,8 +77,12 @@ class LMSetting(object):
                         "test_type": case["caseType"],
                         "test_class": "class_" + collection,
                         "test_case": "case_%s_%s" % (case["caseId"], case["index"]),
-                        "test_data": os.path.join(self.data_path, self.task["taskId"], collection,
-                                                  case["caseId"] + ".json")
+                        "test_data": os.path.join(
+                            self.data_path,
+                            self.task["taskId"],
+                            collection,
+                            case["caseId"] + ".json",
+                        ),
                     }
                     if collection not in test_plan.keys():
                         test_plan[collection] = []
@@ -89,7 +93,7 @@ class LMSetting(object):
             driver = {
                 "browser_opt": self.config.browser_opt,
                 "browser_path": self.config.browser_path,
-                "driver": None
+                "driver": None,
             }
             session = Session()
             context = dict()
@@ -100,9 +104,12 @@ class LMSetting(object):
                 "task_id": self.task["taskId"],
                 "test_type": collection_map["testCaseList"][0]["caseType"],
                 "test_class": "class_" + collection,
-                "test_case": "case_%s_%s" % (
-                    collection_map["testCaseList"][0]["caseId"], collection_map["testCaseList"][0]["index"]),
-                "test_data": self.task["debugData"]
+                "test_case": "case_%s_%s"
+                % (
+                    collection_map["testCaseList"][0]["caseId"],
+                    collection_map["testCaseList"][0]["index"],
+                ),
+                "test_data": self.task["debugData"],
             }
             test_plan[collection] = [test_case]
         return test_plan
@@ -138,8 +145,18 @@ class LMSetting(object):
                 default_lock = threading.RLock()
                 # 进行线程池管理执行 设置最大并发
                 with ThreadPoolExecutor(max_workers=max_thread) as t:
-                    executors = [t.submit(LMRun(test_case_list, index + 1, default_result, default_lock,
-                                                queue).run_test, ) for test_case_list in test_plan.values()]
+                    executors = [
+                        t.submit(
+                            LMRun(
+                                test_case_list,
+                                index + 1,
+                                default_result,
+                                default_lock,
+                                queue,
+                            ).run_test,
+                        )
+                        for test_case_list in test_plan.values()
+                    ]
                     as_completed(executors)
 
         queue.put("run_all_stop--%s" % task_id)
@@ -164,7 +181,11 @@ class LMSetting(object):
                 case_id = test["test_case"].split("_")[1]
                 index = test["test_case"].split("_")[-1]
                 for case in result:
-                    if case["collectionId"] == collection and case["caseId"] == case_id and case["index"] == int(index):
+                    if (
+                        case["collectionId"] == collection
+                        and case["caseId"] == case_id
+                        and case["index"] == int(index)
+                    ):
                         if case["status"] in (1, 2):
                             if collection not in new_test_plan:
                                 new_test_plan[collection] = []
@@ -176,12 +197,14 @@ class LMSetting(object):
 
 class LMSession(object):
     """API测试专用"""
+
     def __init__(self):
         self.session = Session()
 
 
 class LMDriver(object):
     """WEB测试专用"""
+
     def __init__(self):
         self.driver = None
         self.config = LMConfig()

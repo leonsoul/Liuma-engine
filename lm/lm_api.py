@@ -7,7 +7,6 @@ from lm.lm_log import DebugLogger, ErrorLogger
 
 
 class Api(object):
-
     def __init__(self):
         config = LMConfig()
         self.url = config.url[:-1] if config.url.endswith("/") else config.url
@@ -17,12 +16,16 @@ class Api(object):
 
     def request(self, url, data):
         header = self.load_header()
-        response = requests.post(url=url, json=data, headers=header, proxies=self.proxy, timeout=30)
+        response = requests.post(
+            url=url, json=data, headers=header, proxies=self.proxy, timeout=30
+        )
         return response
 
     def download(self, url):
         header = self.load_header()
-        response = requests.get(url=url, headers=header, proxies=self.proxy, stream=True, timeout=30)
+        response = requests.get(
+            url=url, headers=header, proxies=self.proxy, stream=True, timeout=30
+        )
         return response
 
     @staticmethod
@@ -39,9 +42,8 @@ class Api(object):
 
 
 class LMApi(Api):
-
     def apply_token(self):
-        """"申请token"""
+        """申请token"""
         url = self.url + "/openapi/engine/token/apply"
         data = {
             "engineCode": self.engine,
@@ -65,13 +67,10 @@ class LMApi(Api):
             ErrorLogger("调用申请token接口 发生错误 错误信息为：%s" % e)
 
     def fetch_task(self):
-        """"获取任务"""
+        """获取任务"""
         url = self.url + "/openapi/engine/task/fetch"
         for index in range(2):
-            data = {
-                "engineCode": self.engine,
-                "timestamp": int(time.time())
-            }
+            data = {"engineCode": self.engine, "timestamp": int(time.time())}
             try:
                 if index > 0:
                     DebugLogger("-------重试调用获取引擎任务接口--------")
@@ -93,14 +92,14 @@ class LMApi(Api):
             break
 
     def upload_result(self, task_id, data_type, result):
-        """"上传执行结果"""
+        """ "上传执行结果"""
         url = self.url + "/openapi/engine/result/upload"
         for index in range(2):
             data = {
                 "engineCode": self.engine,
                 "timestamp": int(time.time()),
                 "taskId": task_id,
-                "caseResultList": result
+                "caseResultList": result,
             }
             try:
                 if index > 0:
@@ -123,13 +122,13 @@ class LMApi(Api):
             break
 
     def complete_task(self, task_id):
-        """"反馈任务结束"""
+        """ "反馈任务结束"""
         url = self.url + "/openapi/engine/task/complete"
         for index in range(2):
             data = {
                 "engineCode": self.engine,
                 "timestamp": int(time.time()),
-                "taskId": task_id
+                "taskId": task_id,
             }
             try:
                 if index > 0:
@@ -202,13 +201,13 @@ class LMApi(Api):
             break
 
     def upload_screen_shot(self, task_image_path, uuid, log_path):
-        """"上传执行截图"""
+        """ "上传执行截图"""
         url = self.url + "/openapi/engine/screenshot/upload"
         for index in range(2):
             data = {
                 "fileName": "%s.png" % uuid,
                 "engineCode": self.engine,
-                "timestamp": int(time.time())
+                "timestamp": int(time.time()),
             }
             with open(os.path.join(task_image_path, "%s.png" % uuid), "rb") as f:
                 file = base64.b64encode(f.read()).decode()
@@ -227,7 +226,9 @@ class LMApi(Api):
                     else:
                         ErrorLogger("截图%s上传失败" % uuid, file_path=log_path)
                 else:
-                    DebugLogger("调用上传截图接口 响应状态为：%s" % res.status_code, file_path=log_path)
+                    DebugLogger(
+                        "调用上传截图接口 响应状态为：%s" % res.status_code, file_path=log_path
+                    )
             except Exception as e:
                 ErrorLogger("调用上传截图接口 发生错误 错误信息为：%s" % e, file_path=log_path)
             break

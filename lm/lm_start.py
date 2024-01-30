@@ -13,7 +13,6 @@ from lm.lm_ws import Client
 
 
 class LMStart(object):
-
     def __init__(self):
         self.api = LMApi()
         self.config = LMConfig()
@@ -21,17 +20,22 @@ class LMStart(object):
 
     def main(self):
         # 执行状态 0 执行中、 1 待执行 默认待执行
-        """"启动入口"""
-        message_queue = Queue()     # 消息队列
-        status_thread = threading.Thread(target=self.send_heartbeat, args=(message_queue,))
-        status_thread.start()   # 启动心跳链接
-        task_queue = Queue()    # 任务队列
+        """ "启动入口"""
+        message_queue = Queue()  # 消息队列
+        status_thread = threading.Thread(
+            target=self.send_heartbeat, args=(message_queue,)
+        )
+        status_thread.start()  # 启动心跳链接
+        task_queue = Queue()  # 任务队列
         task_thread = threading.Thread(target=self.fetch_task, args=(task_queue,))
         task_thread.start()  # 启动拉取任务 初始化一次 避免任务遗漏
-        monitor_thread = threading.Thread(target=self.monitor_message, args=(message_queue, task_queue))
-        monitor_thread.start()     # 启动消息监听
+        monitor_thread = threading.Thread(
+            target=self.monitor_message, args=(message_queue, task_queue)
+        )
+        monitor_thread.start()  # 启动消息监听
         while True:
             try:
+
                 task = task_queue.get(True, 1)
             except:
                 continue
@@ -39,13 +43,24 @@ class LMStart(object):
                 DebugLogger("接受任务成功 启动执行进程 任务id: %s" % task["taskId"])
                 case_result_queue = Queue()
                 current_exec_status = Value("i", 0)  # 0 执行中、 1 执行结束
-                run_process = Process(target=self.run_test, args=(task, case_result_queue, current_exec_status))
+                run_process = Process(
+                    target=self.run_test,
+                    args=(task, case_result_queue, current_exec_status),
+                )
                 run_process.start()
-                report_process = Process(target=self.push_result, args=(message_queue, case_result_queue))
+                report_process = Process(
+                    target=self.push_result, args=(message_queue, case_result_queue)
+                )
                 report_process.start()
-                upload_process = Process(target=self.upload_image, args=(task, current_exec_status))
+                upload_process = Process(
+                    target=self.upload_image, args=(task, current_exec_status)
+                )
                 upload_process.start()
-                self.exec_processes[task["taskId"]] = [run_process, report_process, upload_process]     # 保存当前进程
+                self.exec_processes[task["taskId"]] = [
+                    run_process,
+                    report_process,
+                    upload_process,
+                ]  # 保存当前进程
 
     def send_heartbeat(self, queue):
         """
@@ -60,24 +75,43 @@ class LMStart(object):
         """
         while True:
             log_path = os.path.join(LOG_PATH, "engine_status.log")
-            domain = self.config.url[:-1] if self.config.url.endswith("/") else self.config.url
-            url = domain.replace("http", "ws") + "/websocket/engine/heartbeat?engineCode={}&engineSecret={}". \
-                format(self.config.engine, self.config.secret)
+            domain = (
+                self.config.url[:-1]
+                if self.config.url.endswith("/")
+                else self.config.url
+            )
+            url = domain.replace(
+                "http", "ws"
+            ) + "/websocket/engine/heartbeat?engineCode={}&engineSecret={}".format(
+                self.config.engine, self.config.secret
+            )
             try:
                 ws = Client(url, queue)
                 ws.connect()
                 while True:
                     time.sleep(30)
-                    ws.send(bytes(0))   # 每隔30秒更新心跳
-                    DebugLogger("-------------------------------------------------", file_path=log_path)
+                    ws.send(bytes(0))  # 每隔30秒更新心跳
+                    DebugLogger(
+                        "-------------------------------------------------",
+                        file_path=log_path,
+                    )
                     DebugLogger("心跳更新成功", file_path=log_path)
-                    DebugLogger("-------------------------------------------------", file_path=log_path)
+                    DebugLogger(
+                        "-------------------------------------------------",
+                        file_path=log_path,
+                    )
             except KeyboardInterrupt:
                 ws.close()
             except Exception as e:
-                DebugLogger("-------------------------------------------------", file_path=log_path)
+                DebugLogger(
+                    "-------------------------------------------------",
+                    file_path=log_path,
+                )
                 ErrorLogger("心跳连接失败 1秒钟后重试 失败原因%s" % e, file_path=log_path)
-                DebugLogger("-------------------------------------------------", file_path=log_path)
+                DebugLogger(
+                    "-------------------------------------------------",
+                    file_path=log_path,
+                )
             time.sleep(1)
 
     def fetch_task(self, queue):
@@ -89,8 +123,8 @@ class LMStart(object):
                     self.exec_processes[task["taskId"]] = []
                     DebugLogger("引擎获取任务成功 任务id: %s" % (task["taskId"]))
                     queue.put(task)
-                else:   # 没有任务 停止获取
-                    break
+                else:  # 没有任务 停止获取
+                    time.sleep(3)
             else:
                 time.sleep(3)
 
@@ -113,7 +147,9 @@ class LMStart(object):
                 continue
             else:
                 if message["type"] == "start":
-                    task_thread = threading.Thread(target=self.fetch_task, args=(task_queue,))
+                    task_thread = threading.Thread(
+                        target=self.fetch_task, args=(task_queue,)
+                    )
                     task_thread.start()
                 elif message["type"] == "stop":
                     if message["data"] in self.exec_processes:
@@ -157,10 +193,16 @@ class LMStart(object):
                 current_process.kill()
             files = os.listdir(task_image_path)
             if len(files) > 0:
-                DebugLogger("-------------------------------------------------", file_path=log_path)
+                DebugLogger(
+                    "-------------------------------------------------",
+                    file_path=log_path,
+                )
                 DebugLogger("上传截图", file_path=log_path)
                 LMUpload(files, log_path).set_upload(task_image_path)
-                DebugLogger("-------------------------------------------------", file_path=log_path)
+                DebugLogger(
+                    "-------------------------------------------------",
+                    file_path=log_path,
+                )
             else:
                 if current_exec_status.value:
                     os.rmdir(task_image_path)
