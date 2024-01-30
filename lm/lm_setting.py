@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import os
-import copy
 import threading
 import traceback
 
@@ -27,7 +26,7 @@ class LMSetting(object):
             file = LMApi().download_task_file(data_url)
         except Exception as e:
             traceback.print_exc()
-            ErrorLogger("数据拉取失败 错误信息: %s" % str(e))
+            ErrorLogger("数据拉取失败 错误信息: %s 任务id: %s" % (str(e), self.task["taskId"]))
             return None
         else:
             file_path = os.path.join(self.data_path, str(self.task["taskId"]) + ".zip")
@@ -36,7 +35,7 @@ class LMSetting(object):
                     if chunk:
                         f.write(chunk)
             f.close()
-            DebugLogger("数据拉取成功")
+            DebugLogger("数据拉取成功 任务id: %s" % self.task["taskId"])
             return file_path
 
     def file_unzip(self, file_path):
@@ -86,7 +85,6 @@ class LMSetting(object):
                     test_plan[collection].append(test_case)
         else:
             collection_map = self.task["testCollectionList"][0]
-
             collection = collection_map["collectionId"]
             driver = {
                 "browser_opt": self.config.browser_opt,
@@ -160,36 +158,30 @@ class LMSetting(object):
         -------
 
         """
-        new_test_plan = copy.deepcopy(test_plan)
-        for collection, test_case_list in new_test_plan.items():
+        new_test_plan = {}
+        for collection, test_case_list in test_plan.items():
             for test in test_case_list:
                 case_id = test["test_case"].split("_")[1]
                 index = test["test_case"].split("_")[-1]
                 for case in result:
                     if case["collectionId"] == collection and case["caseId"] == case_id and case["index"] == int(index):
-                        if case["status"] in (0, 3):
-                            for old_test in test_plan[collection]:
-                                if old_test["test_case"] == test["test_case"]:
-                                    test_plan[collection].remove(old_test)
-                                    break
+                        if case["status"] in (1, 2):
+                            if collection not in new_test_plan:
+                                new_test_plan[collection] = []
+                            new_test_plan[collection].append(test)
                         result.remove(case)
                         break
-            else:
-                if len(test_plan[collection]) == 0:
-                    del test_plan[collection]
-        return test_plan
+        return new_test_plan
 
 
 class LMSession(object):
     """API测试专用"""
-
     def __init__(self):
         self.session = Session()
 
 
 class LMDriver(object):
     """WEB测试专用"""
-
     def __init__(self):
         self.driver = None
         self.config = LMConfig()

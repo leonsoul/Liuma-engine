@@ -7,8 +7,8 @@ import copy
 from lm.lm_log import DebugLogger
 
 
-def extract_by_jsonpath(data: (dict, str), expression: str):
-    if not isinstance(data, dict):
+def extract_by_jsonpath(data: (dict,list, str), expression: str):
+    if not isinstance(data, dict) and not isinstance(data, list):
         raise ExtractValueError('被提取的值不是json, 不支持jsonpath')
     value = jsonpath.jsonpath(data, expression)
     if value:
@@ -50,8 +50,20 @@ def quotation_marks(s):
 
 
 def url_join(host: str, path: str):
-    url = host if host.endswith('/') else host + '/'
-    api = path[1:] if path.startswith('/') else path
+    """
+    拼接hots和path，
+    Parameters
+    ----------
+    host
+    path
+
+    Returns： 拼接好的url host+/+api
+    -------
+
+    """
+    # 如果url和api为空，不进行处理
+    url = "" if host is None or host == "" else (host if host.endswith('/') else host + '/')
+    api = "" if path is None or path == "" else (path[1:] if path.startswith('/') else path)
     return url + api
 
 
@@ -79,7 +91,7 @@ def proxies_join(proxies: dict):
         raise ProxiesError("未设置代理账号或密码")
 
 
-def extract(name: str, data: (dict, str), expression: str):
+def extract(name: str, data: (dict, list, str), expression: str):
     if name == 'jsonpath':
         return extract_by_jsonpath(data, expression)
     elif name == 'regular':
@@ -89,7 +101,6 @@ def extract(name: str, data: (dict, str), expression: str):
 
 
 def get_case_message(data):
-    # print('get_case_message',data)
     if isinstance(data, dict):
         return data
     else:
@@ -206,7 +217,8 @@ def json_to_path(data):
     return {'_REQUEST_BODY.a[1].d': 'e', '_REQUEST_BODY.a[0].b': 'c'}
     """
 
-    queue = [("_REQUEST_BODY", data)]
+    # queue = [("_REQUEST_BODY", data)]
+    queue = [("$", data)]
     fina = {}
     while len(queue) != 0:
         (path, tar) = queue.pop()
@@ -242,9 +254,9 @@ def relate_sort(data, data_from):
     for key, value in data.items():
         # 对value根据是否有关联、需要特殊处理进行分类，如果有#{的话，将这个key，value加到有关联的变量中，非则加到没有关联的变量中
         if "#{" in str(value):
-            relate_list.append((key.replace("_REQUEST_BODY", "$"), value))
+            relate_list.append((key, value))
         else:
-            not_relate_list.append((key.replace("_REQUEST_BODY", "$"), value))
+            not_relate_list.append((key, value))
     copy_list = copy.deepcopy(relate_list)
     sorted_list = []
     # 应该不关键、将不同关联数据的key和value中有重复数据去掉
@@ -263,12 +275,12 @@ def relate_sort(data, data_from):
                 break
     for (key, value) in sorted_list:
         if data_from == "query":
-            sign = "#{_REQUEST_QUERY}"
+            sign = "#{_request_query}"
         elif data_from == "headers":
-            sign = "#{_REQUEST_HEADERS}"
+            sign = "#{_request_header}"
         else:
-            sign = "#{_REQUEST_BODY}"
-        if sign in str(value):
+            sign = "#{_request_body}"
+        if sign in str(value).lower():
             sorted_list.remove((key, value))
             sorted_list.append((key, value))
             break

@@ -139,15 +139,25 @@ class ApiTestCase:
             pop_key = None
         self.template.init(step.collector.others)
         step.collector.others = self.template.render()
-        self.template.set_help_data(step.collector.path, headers, query, body)
-        if "#{_REQUEST_QUERY}" in str(headers) or "#{_REQUEST_BODY}" in str(headers):
-            self.render_json(step, query, "query")
-            self.render_json(step, body, "body", pop_key)
-            self.render_json(step, headers, "headers")
+        self.template.set_help_data(step.collector.url, step.collector.path, headers, query, body)
+        if "#{_request_query" in str(headers).lower() or "#{_request_body" in str(headers).lower():
+            if "#{_request_body" in str(query).lower():
+                self.render_json(step, body, "body", pop_key)
+                self.render_json(step, query, "query")
+                self.render_json(step, headers, "headers")
+            else:
+                self.render_json(step, query, "query")
+                self.render_json(step, body, "body", pop_key)
+                self.render_json(step, headers, "headers")
         else:
-            self.render_json(step, headers, "headers")
-            self.render_json(step, query, "query")
-            self.render_json(step, body, "body", pop_key)
+            if "#{_request_body" in str(query).lower():
+                self.render_json(step, headers, "headers")
+                self.render_json(step, body, "body", pop_key)
+                self.render_json(step, query, "query")
+            else:
+                self.render_json(step, headers, "headers")
+                self.render_json(step, query, "query")
+                self.render_json(step, body, "body", pop_key)
         if step.collector.assertions is not None:
             self.template.init(step.collector.assertions)
             step.collector.assertions = self.template.render()
@@ -169,7 +179,7 @@ class ApiTestCase:
             self.template.request_body = render_value
         else:
             # 将body按jsonpath的格式提取出来，以列表的形式
-            for expr, value in get_json_relation(data, "body"):
+            for expr, value in get_json_relation(data, name):
                 # 如果value的中有{{index}}，将value存到模板里
                 if isinstance(value, str) and self.comp.search(value) is not None:
                     self.template.init(value)

@@ -1,3 +1,4 @@
+import decimal
 # import pymssql as mssql
 import pymysql as mysql
 
@@ -39,11 +40,24 @@ class SQLConnect:
 
     def query(self, sql):
         """执行查询语句"""
+        # todo 检查之前设置的sql获取方法返回值是否存在冲突
         cur = self.connect()
         cur.execute(sql)
         resList = cur.fetchall()
         self.conn.close()
-        return resList
+        results = []
+        for res in resList:
+            for index, value in enumerate(res):
+                if len(results) < index + 1:
+                    results.append([])
+                if isinstance(value, decimal.Decimal):
+                    if len(str(value).split(".")[1]) > 16:
+                        results[index].append(str(value))
+                    else:
+                        results[index].append(float(value))
+                else:
+                    results[index].append(value)
+        return results
 
     def exec(self, sql):
         """执行非查询语句"""

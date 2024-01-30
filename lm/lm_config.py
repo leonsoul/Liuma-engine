@@ -45,18 +45,14 @@ class IniReader:
 
 class LMConfig(object):
     """"配置文件"""
-
     def __init__(self, path=CONFIG_PATH):
         reader = IniReader(path)
         self.url = reader.data("Platform", "url")
-        self.enable_proxy = reader.data("Platform", "enable-proxy")
         self.enable_stderr = reader.data("Platform", "enable-stderr")
         self.engine = reader.data("Engine", "engine-code")
         self.secret = reader.data("Engine", "engine-secret")
         self.header = reader.option("Header")
-        self.platform_proxy = reader.option("PlatformProxy")
         self.browser_opt = reader.data("WebDriver", "options")
-
         if self.browser_opt == "remote" or "/" in reader.data("WebDriver", "path"):
             self.browser_path = reader.data("WebDriver", "path")
         else:
@@ -68,6 +64,7 @@ class LMConfig(object):
                 self.browser_path = os.path.join(BROWSER_PATH, reader.data("WebDriver", "linux-path"))
             else:
                 self.browser_path = os.path.join(BROWSER_PATH, reader.data("WebDriver", "path"))
+        self.max_run = reader.data("RunSetting", "max-run")
 
 
 class AlltuuConfig(object):

@@ -22,4 +22,9 @@ aliyun-python-sdk-kms==2.16.1
 aliyun-python-sdk-sts==3.1.1
 uiautomator2==2.16.23
 facebook-wda==1.4.6
-pymysql==1.1.0
+pymssql==2.2.7
+PyMySQL==1.0.2
+cx_Oracle==8.3.0
+psycopg2==2.9.5
+ws4py~=0.5.1
+websocket~=0.2.1

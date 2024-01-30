@@ -12,8 +12,8 @@ from tools.utils.utils import extract_by_jsonpath, quotation_marks
 
 class Template:
 
-    def __init__(self, test, context, functions, params, variable_start_string='{{', variable_end_string='}}',
-                 function_prefix='@', param_prefix='$'):
+    def __init__(self, test, context, functions, params, variable_start_string='{{', variable_end_string='}}', function_prefix='@', param_prefix='$'):
+        self.test = test
         self.param_prefix = param_prefix
         self.data = None
         self.context = context  # 关联参数
@@ -24,6 +24,7 @@ class Template:
         self.param_prefix = param_prefix
         self.stack = list()
         # 动态存储接口的请求信息 以便渲染
+        self.request_url = None
         self.request_path = None
         self.request_headers = None
         self.request_query = None
@@ -38,7 +39,8 @@ class Template:
         self.stack.clear()
         self.bytes_map.clear()
 
-    def set_help_data(self, path: str, headers: dict, query: dict, body: dict):
+    def set_help_data(self, url, path: str, headers: dict, query: dict, body: dict):
+        self.request_url = url
         self.request_path = path
         self.request_headers = headers
         self.request_query = query
@@ -81,37 +83,35 @@ class Template:
                     flag = False
                 tmp = tmp[::-1]
                 key = tmp[start_length:-end_length].strip()
-                index = None
-                if key.endswith(']') and '[' in key:
-                    keys = key.split("[")
-                    key = keys[0]
-                    try:
-                        index = int(keys[-1][:-1])
-                    except:
-                        index = None
-                if key in self.context:  # 优先从关联参数中取
-                    if index is None:
-                        value = self.context.get(key)
+                # todo 给这一段增加注释
+                key, json_path = self.split_key(key)
+                try:
+                    if key.startswith(self.function_prefix):
+                        name_args = self.split_func(key, self.function_prefix)
+                        value = self.func_lib(name_args[0], *name_args[1:])
+                    elif key in self.context: # 优先从关联参数中取
+                        if json_path is None:
+                            value = self.context.get(key)
+                        else:
+                            value = extract_by_jsonpath(self.context.get(key), json_path)
+                    elif key in self.params:
+                        if json_path is None:
+                            value = self.params.get(key)
+                        else:
+                            value = extract_by_jsonpath(self.params.get(key), json_path)
+                    elif key.startswith(self.param_prefix) and key[1:] in self.params:  # 兼容老版本
+                        if json_path is None:
+                            value = self.params.get(key[1:])
+                        else:
+                            value = extract_by_jsonpath(self.params.get(key[1:]), json_path)
                     else:
-                        value = self.context.get(key)[index]
-                elif key in self.params:
-                    if index is None:
-                        value = self.params.get(key)
-                    else:
-                        value = self.params.get(key)[index]
-                elif key.startswith(self.param_prefix) and key[1:] in self.params:  # 兼容老版本 使用&来读取自定义公参|自定义参数
-                    if index is None:
-                        value = self.params.get(key[1:])
-                    else:
-                        value = self.params.get(key[:-1])[index]
-                elif key.startswith(self.function_prefix):  # 关联函数
-                    name_args = self.split_func(key, self.function_prefix)
-                    name_args = [_ for _ in map(self.replace_param, name_args)]
-                    value = self.func_lib(name_args[0], *name_args[1:])
-                else:
-                    raise KeyError('不存在的公共参数、关联变量或内置函数: {}'.format(key))
+                        value = tmp
+                except:
+                    value = tmp
+                    print('不存在的公共参数、关联变量或内置函数: {}'.format(key), file=self.test.stdout_buffer)
+
                 if not flag and isinstance(value, str):
-                    if '"' in value:
+                    if '"' in value and value != tmp:
                         value = json.dumps(value)[1:-1]
                     final_value = value
                 elif isinstance(value, bytes):
@@ -125,7 +125,10 @@ class Template:
                             final_value.append(list_item)
                     final_value = json.dumps(final_value)
                 else:
-                    final_value = json.dumps(value)
+                    if value == tmp and isinstance(value, str):
+                        final_value = '"'+value+'"'
+                    else:
+                        final_value = json.dumps(value)
                 for s in final_value:
                     self.stack.append(s)
                     top += 1
@@ -163,12 +166,13 @@ class Template:
             return self.bytes_map[expr]
 
     def replace_param(self, param):
-        if not isinstance(param, str):
-            return param
+        param = param.strip()
         search_result = re.search(r'#\{(.*?)\}', param)
         if search_result is not None:
             expr = search_result.group(1).strip()
-            if expr.lower() == '_request_path':
+            if expr.lower() == '_request_url':
+                return self.request_url
+            elif expr.lower() == '_request_path':
                 return self.request_path
             elif expr.lower() == '_request_header':
                 return self.request_headers
@@ -179,11 +183,44 @@ class Template:
             elif expr.startswith('bytes_'):
                 return self.bytes_map[expr]
             else:
-                if not expr.startswith('$'):
-                    expr = '$.' + expr
-                return extract_by_jsonpath(self.request_body, expr)
+                # 支持从请求头和查询参数中取单个数据
+                if expr.lower().startswith("_request_header."):
+                    data = self.request_headers
+                    expr = '$.' + expr[16:]
+                elif expr.lower().startswith("_request_query."):
+                    data = self.request_query
+                    expr = '$.' + expr[15:]
+                else:
+                    data = self.request_body
+                    if expr.lower().startswith("_request_body."):
+                        expr = '$.' + expr[14:]
+                    elif not expr.startswith('$'):
+                        expr = '$.' + expr
+                try:
+                    return extract_by_jsonpath(data, expr)
+                except:
+                    return param
         else:
             return param
+
+    def split_key(self, key: str):
+        if key.startswith(self.function_prefix):
+            return key, None
+        key_list = key.split(".")
+        key = key_list[0]
+        json_path = None
+        if len(key_list) > 1:
+            json_path = reduce(lambda x, y: x + '.' + y, key_list[1:])
+        if key.endswith(']') and '[' in key:
+            keys = key.split("[")
+            key = keys[0]
+            if json_path is None:
+                json_path = keys[-1][:-1]
+            else:
+                json_path = keys[-1][:-1] + "." + json_path
+        if json_path is not None:
+            json_path = "$." + json_path
+        return key, json_path
 
     def split_func(self, statement: str, flag: 'str' = '@'):
         # 将函数变量提取出来，如{{@asdb_asdkjh(a,awekjh)}}
@@ -191,10 +228,11 @@ class Template:
         m = re.match(pattern, statement)
         result = list()
         if m is not None:
-            name, args = m.groups()
+            name, _ = m.groups()
+            args = statement.replace(flag+name, "")
             result.append(name)
             if args is not None and args != '()':
-                argList = [arg.strip() for arg in args[1:-1].split(',')]
+                argList = [str(_) for _ in map(self.replace_param, args[1:-1].split(','))]
                 argList_length = len(argList)
                 if not (argList_length == 1 and len(argList[0]) == 0):
                     if name not in self.func_lib.func_param:
@@ -231,24 +269,28 @@ class Template:
                                 result.append(argList[j])
                                 j += 1
                             else:
-                                raise SplitFunctionError(
-                                    '函数{}第{}个参数类型错误: {}'.format(name, i + 1, type_list[i]))
+                                raise SplitFunctionError('函数{}第{}个参数类型错误: {}'.format(name, i + 1, type_list[i]))
             return result
         else:
             raise SplitFunctionError('函数错误: {}'.format(statement))
 
     @staticmethod
     def concat(start: int, arg_list: list, terminal_char: str):
-        end = -1
+        # todo 这里也要
+        end = start
         length = len(arg_list)
         for i in range(start, length):
             if terminal_char in arg_list[i]:
                 end = i
+                s = reduce(lambda x, y: x + ',' + y, arg_list[start:end + 1])
                 try:
-                    s = reduce(lambda x, y: x + ',' + y, arg_list[start:end + 1])
                     return end + 1, eval(quotation_marks(s))
                 except:
-                    continue
+                    try:
+                        s = '"'+s+'"'
+                        return end + 1, eval(json.loads(s))
+                    except:
+                        continue
         else:
             s = reduce(lambda x, y: x + ',' + y, arg_list[start:end + 1])
             return end + 1, s

@@ -1,18 +1,18 @@
 import datetime
-import json
 import sys
-from collections import OrderedDict
-from copy import deepcopy
 from time import sleep
 
 from requests import request, Session
+from copy import deepcopy
+import json
 import re
-
+from collections import OrderedDict
 from core.assertion import LMAssert
 from lm.lm_log import DebugLogger
 from tools.alltuu.Signature import Signature
 from tools.utils.sql import SQLConnect
 from tools.utils.utils import extract, ExtractValueError, url_join
+from urllib.parse import urlencode
 
 REQUEST_CNAME_MAP = {
     'headers': '请求头',
@@ -34,6 +34,7 @@ class ApiTestStep:
         self.params = params
         self.test = test
         self.status_code = None
+        self.response_request = None
         self.response_headers = None
         self.response_content = None
         self.response_content_bytes = None
@@ -125,6 +126,7 @@ class ApiTestStep:
                 DebugLogger("开始请求，请求参数为{}，请求路径为{}".format(
                     json.dumps(self.collector.others['data'], ensure_ascii=True), url))
             end_time = datetime.datetime.now()
+            self.response_request = res.request
             # 记录结束时间、保存响应结果
             self.test.recordTransDuring(int((end_time - start_time).microseconds / 1000))
             self.save_response(res)
@@ -189,7 +191,6 @@ class ApiTestStep:
 
     def exec_script(self, code):
         """执行前后置脚本"""
-
         def print(*args, sep=' ', end='\n', file=None, flush=False):
             if file is None or file in (sys.stdout, sys.stderr):
                 file = self.test.stdout_buffer
@@ -210,6 +211,7 @@ class ApiTestStep:
                 raise KeyError("不存在的公共参数或关联变量: {}".format(name))
 
         names = locals()
+        names["res_request"] = self.response_request
         names["res_code"] = self.status_code
         names["res_header"] = self.response_headers
         names["res_data"] = self.response_content
@@ -234,18 +236,22 @@ class ApiTestStep:
             names = [value.strip() for value in re.split("[,，]", sql["names"])]  # name数量可以比结果数量段，但不能长，不能会indexError
             values = list(zip(*list(results)))
             for j, n in enumerate(names):
-                if len(values) == 0:
+                if len(results) == 0:
                     self.context[n] = []  # 如果查询结果为空 则变量保存为空数组
                     continue
-                if j >= len(values):
-                    raise IndexError(
-                        "变量数错误, 请检查变量数配置是否与查询语句一致，当前查询结果: <br>{}".format(results))
-                if n == '':  # 如果变量传进来是空的话
-                    raise ValueError(
-                        "变量名为空, 请检查变量数配置是否与查询语句一致，当前查询结果: <br>{}，当前传入的变量名为{}".format(results, sql["names"]))
-                elif len(values[j]) == 1:  # 如果只查询一个值的话，就直接返回这个值，不需要再处理
-                    values[j] = values[j][0]
-                self.context[n] = values[j]  # 保存变量到变量空间
+                if j >= len(results):
+                    raise IndexError("变量数错误, 请检查变量数配置是否与查询语句一致，当前查询结果: <br>{}".format(results))
+                self.context[n] = results[j]  # 保存变量到变量空间
+                # todo sql的第二处在这里
+                # if j >= len(values):
+                #     raise IndexError(
+                #         "变量数错误, 请检查变量数配置是否与查询语句一致，当前查询结果: <br>{}".format(results))
+                # if n == '':  # 如果变量传进来是空的话
+                #     raise ValueError(
+                #         "变量名为空, 请检查变量数配置是否与查询语句一致，当前查询结果: <br>{}，当前传入的变量名为{}".format(results, sql["names"]))
+                # elif len(values[j]) == 1:  # 如果只查询一个值的话，就直接返回这个值，不需要再处理
+                #     values[j] = values[j][0]
+                # self.context[n] = values[j]  # 保存变量到变量空间
 
     def save_response(self, res):
         """保存响应结果"""
@@ -262,7 +268,7 @@ class ApiTestStep:
             self.response_content = res.text
 
     def extract_depend_params(self):
-        """关联取值"""
+        """关联参数"""
         if self.collector.relations is not None:
             for items in self.collector.relations:
                 if items['expression'].strip() == '$':
@@ -344,9 +350,7 @@ class ApiTestStep:
 
 
 def dict2str(data):
-    if isinstance(data, dict):
-        return json.dumps(data, ensure_ascii=False)
-    elif not isinstance(data, str):
+    if not isinstance(data, str):
         return str(data)
     else:
         return data
